@@ -1,0 +1,88 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:{YY}-{MM}-{DD}-{#####}",
+ "creation": "2026-01-23 16:03:14.338714",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "timestamp",
+  "site",
+  "queue_name",
+  "column_break_ypon",
+  "job_count",
+  "failed_count",
+  "active_workers"
+ ],
+ "fields": [
+  {
+   "fieldname": "timestamp",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "timestamp"
+  },
+  {
+   "fieldname": "site",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "site"
+  },
+  {
+   "fieldname": "queue_name",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "queue_name",
+   "options": "short\ndefault\nlong"
+  },
+  {
+   "fieldname": "column_break_ypon",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "job_count",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "job_count"
+  },
+  {
+   "fieldname": "failed_count",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "failed_count"
+  },
+  {
+   "fieldname": "active_workers",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "active_workers"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-01-23 17:16:01.743866",
+ "modified_by": "Administrator",
+ "module": "F Watcher",
+ "name": "F Watcher Queue Metric",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

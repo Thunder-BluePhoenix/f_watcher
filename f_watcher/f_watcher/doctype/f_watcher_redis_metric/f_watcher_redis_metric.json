@@ -1,0 +1,69 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:REDM-{######}",
+ "creation": "2026-03-19 03:21:29.654310",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "timestamp",
+  "redis_type",
+  "used_memory_human",
+  "hit_ratio",
+  "keyspace_hits",
+  "keyspace_misses"
+ ],
+ "fields": [
+  {
+   "fieldname": "timestamp",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Timestamp"
+  },
+  {
+   "default": "Cache",
+   "fieldname": "redis_type",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Redis Instance"
+  },
+  {
+   "fieldname": "used_memory_human",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Used Memory"
+  },
+  {
+   "fieldname": "hit_ratio",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Hit Ratio (%)"
+  },
+  {
+   "fieldname": "keyspace_hits",
+   "fieldtype": "Int",
+   "label": "Keyspace Hits"
+  },
+  {
+   "fieldname": "keyspace_misses",
+   "fieldtype": "Int",
+   "label": "Keyspace Misses"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-03-19 03:21:29.654310",
+ "modified_by": "Administrator",
+ "module": "F Watcher",
+ "name": "F Watcher Redis Metric",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

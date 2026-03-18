@@ -1,0 +1,87 @@
+{
+ "charts": [],
+ "content": "[{\"id\":\"wBWwpCYY7l\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">F Watcher</span>\",\"col\":12}},{\"id\":\"gZbXqVyYE4\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"F Watcher Control Center\",\"col\":3}},{\"id\":\"dl2dJVM50w\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"ApCxYkwLkx\",\"type\":\"card\",\"data\":{\"card_name\":\"Easy Access\",\"col\":4}}]",
+ "creation": "2026-01-23 17:27:50.202051",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "unhide",
+ "idx": 0,
+ "indicator_color": "green",
+ "is_hidden": 0,
+ "label": "F Watcher",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Easy Access",
+   "link_count": 4,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "F Watcher DB Table Storage",
+   "link_count": 0,
+   "link_to": "F Watcher DB Table Storage",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "F Watcher System Metric",
+   "link_count": 0,
+   "link_to": "F Watcher System Metric",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "F Watcher Action Audit",
+   "link_count": 0,
+   "link_to": "F Watcher Action Audit",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "F Watcher DB Storage Snapshot",
+   "link_count": 0,
+   "link_to": "F Watcher DB Storage Snapshot",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-01-23 17:33:00.086892",
+ "modified_by": "Administrator",
+ "module": "F Watcher",
+ "name": "F Watcher",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 28.0,
+ "shortcuts": [
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "F Watcher Control Center",
+   "link_to": "f_watcher-control",
+   "type": "Page"
+  }
+ ],
+ "title": "F Watcher"
+}

@@ -1,0 +1,142 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:{YY}-{MM}-{DD}-{#####}",
+ "creation": "2026-01-23 16:06:59.985540",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "timestamp",
+  "site",
+  "hostname",
+  "db_name",
+  "table_name",
+  "engine",
+  "rows_est",
+  "data_mb",
+  "column_break_twwg",
+  "cleanup_allowed",
+  "index_mb",
+  "total_mb",
+  "importance",
+  "importance_note",
+  "cleanup_hint"
+ ],
+ "fields": [
+  {
+   "fieldname": "timestamp",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "timestamp"
+  },
+  {
+   "fieldname": "site",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "site"
+  },
+  {
+   "fieldname": "hostname",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "hostname"
+  },
+  {
+   "fieldname": "db_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "db_name"
+  },
+  {
+   "fieldname": "table_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "table_name"
+  },
+  {
+   "fieldname": "engine",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "engine"
+  },
+  {
+   "fieldname": "rows_est",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "rows_est"
+  },
+  {
+   "fieldname": "data_mb",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "data_mb"
+  },
+  {
+   "fieldname": "column_break_twwg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "cleanup_allowed",
+   "fieldtype": "Check",
+   "label": "cleanup_allowed"
+  },
+  {
+   "fieldname": "index_mb",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "index_mb"
+  },
+  {
+   "fieldname": "total_mb",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "total_mb"
+  },
+  {
+   "fieldname": "importance",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "importance",
+   "options": "Transactional\nLedger/Accounting\nStock/Inventory\nLogs/Audit\nAttachments/Files\nIntegration/Sync\nSystem/Core\nCustom/Unknown"
+  },
+  {
+   "fieldname": "importance_note",
+   "fieldtype": "Small Text",
+   "label": "importance_note"
+  },
+  {
+   "fieldname": "cleanup_hint",
+   "fieldtype": "Small Text",
+   "label": "cleanup_hint"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-01-23 17:18:14.341048",
+ "modified_by": "Administrator",
+ "module": "F Watcher",
+ "name": "F Watcher DB Table Storage",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

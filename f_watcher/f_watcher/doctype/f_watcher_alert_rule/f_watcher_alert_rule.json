@@ -1,0 +1,109 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:ALR-{######}",
+ "creation": "2026-03-19 03:19:24.023129",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "rule_name",
+  "is_active",
+  "metric_type",
+  "condition",
+  "threshold_value",
+  "property_name",
+  "column_break_1",
+  "alert_channel",
+  "webhook_url",
+  "email_address",
+  "last_triggered"
+ ],
+ "fields": [
+  {
+   "fieldname": "rule_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Rule Name",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Is Active"
+  },
+  {
+   "fieldname": "metric_type",
+   "fieldtype": "Select",
+   "label": "Metric To Monitor",
+   "options": "System\nDatabase\nQueue\nBackup\nSecurity",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.metric_type in ['System', 'Database', 'Queue']",
+   "fieldname": "condition",
+   "fieldtype": "Select",
+   "label": "Condition",
+   "options": ">\n<\n>=\n<=\n==",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.metric_type in ['System', 'Database', 'Queue']",
+   "fieldname": "threshold_value",
+   "fieldtype": "Float",
+   "label": "Threshold Value"
+  },
+  {
+   "description": "e.g., cpu_percent, ram_percent, disk_percent",
+   "fieldname": "property_name",
+   "fieldtype": "Data",
+   "label": "Property Name"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "alert_channel",
+   "fieldtype": "Select",
+   "label": "Alert Channel",
+   "options": "Webhook\nEmail\nSystem Notification",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.alert_channel=='Webhook'",
+   "fieldname": "webhook_url",
+   "fieldtype": "Data",
+   "label": "Webhook URL (Slack/Discord/Teams)"
+  },
+  {
+   "depends_on": "eval:doc.alert_channel=='Email'",
+   "fieldname": "email_address",
+   "fieldtype": "Data",
+   "label": "Email Address"
+  },
+  {
+   "fieldname": "last_triggered",
+   "fieldtype": "Datetime",
+   "label": "Last Triggered",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-03-19 03:19:24.023129",
+ "modified_by": "Administrator",
+ "module": "F Watcher",
+ "name": "F Watcher Alert Rule",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

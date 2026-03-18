@@ -1,9 +1,9 @@
 app_name = "f_watcher"
 app_title = "F Watcher"
-app_publisher = "BluePhoenix"
-app_description = "Watches your Frappe universe. Logs, workers, queues, and system health in one place."
-app_email = "bluephoenix00995@gmail.com"
-app_license = "gpl-3.0"
+app_publisher = "Karani Geoffrey"
+app_description = "F Watcher is Upeosoft’s observability and reliability toolkit for ERPNext"
+app_email = "karani@upeosoft.com"
+app_license = "mit"
 
 # Apps
 # ------------------
@@ -70,9 +70,6 @@ app_license = "gpl-3.0"
 # automatically create page for each record of this doctype
 # website_generators = ["Web Page"]
 
-# automatically load and sync documents of this doctype from downstream apps
-# importable_doctypes = [doctype_1]
-
 # Jinja
 # ----------
 
@@ -128,6 +125,14 @@ app_license = "gpl-3.0"
 # 	"Event": "frappe.desk.doctype.event.event.has_permission",
 # }
 
+# DocType Class
+# ---------------
+# Override standard doctype classes
+
+# override_doctype_class = {
+# 	"ToDo": "custom_app.overrides.CustomToDo"
+# }
+
 # Document Events
 # ---------------
 # Hook on document methods and events
@@ -143,36 +148,34 @@ app_license = "gpl-3.0"
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
-# 	"all": [
-# 		"f_watcher.tasks.all"
-# 	],
-# 	"daily": [
-# 		"f_watcher.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"f_watcher.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"f_watcher.tasks.weekly"
-# 	],
-# 	"monthly": [
-# 		"f_watcher.tasks.monthly"
-# 	],
-# }
+
+scheduler_events = {
+    "cron": {
+        "* * * * *": [
+            "f_watcher.collectors.system.collect",
+            "f_watcher.collectors.queue.collect",
+        ],
+        "*/5 * * * *": [
+            "f_watcher.collectors.db_storage.collect",
+            "f_watcher.collectors.database.collect",
+            "f_watcher.collectors.alerting.evaluate_and_alert",
+            "f_watcher.collectors.app_health.collect",
+            "f_watcher.collectors.redis_cache.collect",
+        ],
+        "*/15 * * * *": [
+            "f_watcher.collectors.security.collect",
+        ],
+        "0 * * * *": [
+            "f_watcher.collectors.backups.collect",
+        ],
+    }
+}
+
 
 # Testing
 # -------
 
 # before_tests = "f_watcher.install.before_tests"
-
-# Extend DocType Class
-# ------------------------------
-#
-# Specify custom mixins to extend the standard doctype controller.
-# extend_doctype_class = {
-# 	"Task": "f_watcher.custom.task.CustomTaskMixin"
-# }
 
 # Overriding Methods
 # ------------------------------
@@ -250,3 +253,10 @@ app_license = "gpl-3.0"
 # List of apps whose translatable strings should be excluded from this app's translations.
 # ignore_translatable_strings_from = []
 
+
+fixtures = [
+    "Client Script",
+    "Custom Field",
+    "Workspace",
+    "Page"
+]

@@ -1,0 +1,63 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:ALRL-{######}",
+ "creation": "2026-03-19 03:19:24.570867",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "alert_rule",
+  "timestamp",
+  "status",
+  "message",
+  "metric_value"
+ ],
+ "fields": [
+  {
+   "fieldname": "alert_rule",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Alert Rule",
+   "options": "F Watcher Alert Rule"
+  },
+  {
+   "fieldname": "timestamp",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Timestamp"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Triggered\nResolved\nFailed to Send"
+  },
+  {
+   "fieldname": "message",
+   "fieldtype": "Text",
+   "label": "Message"
+  },
+  {
+   "fieldname": "metric_value",
+   "fieldtype": "Data",
+   "label": "Metric Value at Trigger"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-03-19 03:19:24.570867",
+ "modified_by": "Administrator",
+ "module": "F Watcher",
+ "name": "F Watcher Alert Log",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
