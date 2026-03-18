@@ -260,7 +260,5 @@ scheduler_events = {
 
 fixtures = [
     "Client Script",
-    "Custom Field",
-    "Workspace",
-    "Page"
+    "Custom Field"
 ]
