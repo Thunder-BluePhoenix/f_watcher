@@ -24,7 +24,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Metric Type",
-   "options": "Error Log\nScheduled Job\nActive Sessions"
+   "options": "Error Log\nScheduled Job\nActive Sessions\nDeadlock\nIntegration Request\nAPM Trace"
   },
   {
    "fieldname": "count",

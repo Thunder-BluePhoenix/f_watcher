@@ -1,0 +1,23 @@
+{
+ "content": null,
+ "creation": "2026-03-19 03:36:44.483386",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2026-03-19 03:36:44.483386",
+ "modified_by": "Administrator",
+ "module": "F Watcher",
+ "name": "f-watcher-log-viewer",
+ "owner": "Administrator",
+ "page_name": "f-watcher-log-viewer",
+ "roles": [
+  {
+   "role": "System Manager"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "F Watcher Log Viewer"
+}

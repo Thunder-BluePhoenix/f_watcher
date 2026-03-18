@@ -1,0 +1,35 @@
+<style>
+    .log-container {
+        background-color: #1e1e1e;
+        color: #00ff00;
+        padding: 15px;
+        font-family: inherit, monospace;
+        height: 600px;
+        overflow-y: scroll;
+        border-radius: 5px;
+        white-space: pre-wrap;
+        box-shadow: inset 0 0 10px #000;
+    }
+    .log-controls {
+        margin-bottom: 20px;
+        padding: 10px;
+        background: var(--bg-color);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+    }
+</style>
+
+<div class="log-controls">
+    <label class="control-label" style="display:inline-block; margin-right:10px;">Select Log File:</label>
+    <select id="log_file_selector" class="form-control" style="width: 250px; display: inline-block;">
+        <option value="frappe.log" selected>frappe.log (Core App Flow)</option>
+        <option value="web.error.log">web.error.log (Nginx / Gunicorn)</option>
+        <option value="worker.error.log">worker.error.log (Background Jobs)</option>
+        <option value="schedule.error.log">schedule.error.log (Scheduler)</option>
+        <option value="node-socketio.error.log">node-socketio.error.log (Socket & Web)</option>
+    </select>
+    <button class="btn btn-primary btn-sm" id="refresh_log_btn" style="margin-left: 10px;">Refresh Logs</button>
+    <span id="log_status" class="text-muted" style="margin-left: 15px;"></span>
+</div>
+
+<div id="log_output" class="log-container">Connecting to server and streaming logs...</div>

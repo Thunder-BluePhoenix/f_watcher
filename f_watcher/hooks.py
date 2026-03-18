@@ -1,9 +1,9 @@
 app_name = "f_watcher"
 app_title = "F Watcher"
-app_publisher = "Karani Geoffrey"
-app_description = "F Watcher is Upeosoft’s observability and reliability toolkit for ERPNext"
-app_email = "karani@upeosoft.com"
-app_license = "mit"
+app_publisher = "BluePhoenix"
+app_description = "Watches your Frappe universe. Logs, workers, queues, and system health in one place."
+app_email = "bluephoenix00995@gmailcom"
+app_license = "gpl-3.0"
 
 # Apps
 # ------------------
@@ -161,12 +161,16 @@ scheduler_events = {
             "f_watcher.collectors.alerting.evaluate_and_alert",
             "f_watcher.collectors.app_health.collect",
             "f_watcher.collectors.redis_cache.collect",
+            "f_watcher.collectors.apm.collect",
+            "f_watcher.collectors.integration.collect",
         ],
         "*/15 * * * *": [
             "f_watcher.collectors.security.collect",
         ],
         "0 * * * *": [
             "f_watcher.collectors.backups.collect",
+            "f_watcher.collectors.database_health.collect",
+            "f_watcher.collectors.infrastructure.collect",
         ],
     }
 }
