@@ -17,7 +17,8 @@ def tail_log(filename="frappe.log", lines=100):
         
     try:
         import subprocess
-        result = subprocess.run(["tail", "-n", str(int(lines)), log_path], capture_output=True, text=True)
+        safe_lines = min(int(lines), 500)  # hard cap — prevents unbounded reads
+        result = subprocess.run(["tail", "-n", str(safe_lines), log_path], capture_output=True, text=True)
         return result.stdout
     except Exception as e:
         return f"Error reading log: {e}"

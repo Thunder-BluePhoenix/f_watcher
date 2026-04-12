@@ -30,9 +30,18 @@ CLEANUP_RULES = {
     },
 }
 
+def _check_permission():
+    if not (
+        frappe.session.user == "Administrator"
+        or "System Manager" in frappe.get_roles()
+        or "F Watcher Operator" in frappe.get_roles()
+    ):
+        frappe.throw("Not permitted. Requires System Manager or F Watcher Operator role.",
+                     frappe.PermissionError)
+
 @frappe.whitelist()
 def preview(table: str, days: int | None = None):
-    frappe.only_for("F Watcher Operator")
+    _check_permission()
     rule = _rule(table)
     days = int(days or rule["default_days"])
 
@@ -51,16 +60,19 @@ def preview(table: str, days: int | None = None):
 
 @frappe.whitelist()
 def execute(table: str, days: int, reason: str):
-    frappe.only_for("F Watcher Operator")
+    _check_permission()
     rule = _rule(table)
     days = int(days)
 
     try:
+        deleted = frappe.db.sql(
+            f"SELECT COUNT(*) FROM `{table}` WHERE {rule['where']}",
+            {"days": days},
+        )[0][0]
         frappe.db.sql(
             f"DELETE FROM `{table}` WHERE {rule['where']}",
             {"days": days},
         )
-        deleted = frappe.db.affected_rows()
         frappe.db.commit()
 
         _audit("cleanup", table, reason, "Success", f"Deleted {deleted} rows older than {days} days.")

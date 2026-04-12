@@ -30,20 +30,26 @@ def collect_error_logs():
         }).insert(ignore_permissions=True)
 
 def collect_scheduled_jobs():
-    if not frappe.db.exists("DocType", "Scheduled Job Type"):
+    # status lives in Scheduled Job Log (execution history), not Scheduled Job Type
+    if not frappe.db.exists("DocType", "Scheduled Job Log"):
         return
-        
-    failed_jobs = frappe.get_all("Scheduled Job Type", filters={"status": "Failed"}, fields=["name"])
+
+    five_mins_ago = add_to_date(now_datetime(), minutes=-5)
+    failed_jobs = frappe.get_all(
+        "Scheduled Job Log",
+        filters={"status": "Failed", "creation": [">=", five_mins_ago]},
+        fields=["name", "scheduled_job_type"],
+    )
     if failed_jobs:
-        job_names = [j.name for j in failed_jobs]
+        job_names = [j.scheduled_job_type or j.name for j in failed_jobs]
         details = "Failed Jobs: " + ", ".join(job_names[:5])
         if len(job_names) > 5:
             details += f" ... and {len(job_names) - 5} more."
-            
+
         frappe.get_doc({
             "doctype": "F Watcher App Metric",
             "timestamp": now_datetime(),
             "metric_type": "Scheduled Job",
             "count": len(failed_jobs),
-            "details": details
+            "details": details,
         }).insert(ignore_permissions=True)

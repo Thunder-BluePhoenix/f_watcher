@@ -561,46 +561,80 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
         { fieldname: "preview_html", fieldtype: "HTML" },
       ],
       primary_action_label: "Preview impact",
-      primary_action(values) {
+      primary_action() {
+        // Always read fresh values from the dialog at call time
+        const vals = d.get_values();
+        if (!vals) return; // validation failed
+
+        const $previewWrap = d.fields_dict.preview_html.$wrapper;
+        const $primaryBtn = d.get_primary_btn();
+
+        // Freeze the Preview button to prevent double-calls
+        $primaryBtn.prop("disabled", true).text("Loading…");
+
         frappe.call({
           method: "f_watcher.actions.cleanup.preview",
-          args: { table, days: values.days },
+          args: { table, days: vals.days },
           callback(r) {
+            $primaryBtn.prop("disabled", false).text("Preview impact");
             const info = r.message || {};
-            d.fields_dict.preview_html.$wrapper.html(`
+            const count = info.records_to_delete ?? 0;
+
+            // Hide execute button when there is nothing to delete
+            const execBtn = count > 0
+              ? `<button class="btn btn-danger btn-sm upeo-btn upeo-exec-cleanup">Execute cleanup</button>`
+              : `<div class="upeo-subtle" style="color:#16a34a;margin-top:4px;">Nothing to delete — all records are within the retention window.</div>`;
+
+            $previewWrap.html(`
               <div class="upeo-glass upeo-card-pad upeo-fade-in upeo-section" style="margin-top:10px;">
                 <div class="upeo-accent actions"></div>
                 <div style="font-weight:850;">Preview</div>
                 <div class="upeo-subtle" style="margin-top:6px;">
-                  This will delete approximately <b>${info.records_to_delete ?? 0}</b> records older than <b>${info.days ?? values.days}</b> days.
+                  This will delete approximately <b>${count}</b> records older than <b>${info.days ?? vals.days}</b> days.
                 </div>
                 <div class="upeo-subtle" style="margin-top:6px;">${frappe.utils.escape_html(info.warning || "")}</div>
-                <div style="margin-top:12px;">
-                  <button class="btn btn-danger btn-sm upeo-btn" id="upeo-exec-cleanup">Execute cleanup</button>
-                </div>
+                <div style="margin-top:12px;">${execBtn}</div>
               </div>
             `);
 
-            $("#upeo-exec-cleanup").off("click").on("click", () => {
+            // Scope selector to dialog wrapper — avoids stale global DOM matches
+            $previewWrap.find(".upeo-exec-cleanup").off("click").on("click", function () {
+              const $btn = $(this);
               frappe.confirm("This cannot be undone. Proceed?", () => {
+                // Re-read values at execute time in case user edited after previewing
+                const execVals = d.get_values();
+                if (!execVals) return;
+
+                $btn.prop("disabled", true).text("Deleting…");
                 frappe.call({
                   method: "f_watcher.actions.cleanup.execute",
-                  args: { table, days: values.days, reason: values.reason },
+                  args: { table, days: execVals.days, reason: execVals.reason },
                   callback(resp) {
                     d.hide();
                     showToast("ok", `Cleanup done: deleted ${resp.message?.deleted ?? 0} rows.`);
                     refresh(true);
                   },
                   error() {
-                    showToast("error", "Cleanup failed. See server logs.");
-                  }
+                    // frappe.msgprint renders above dialog backdrop — toast is hidden behind it
+                    frappe.msgprint({
+                      title: "Cleanup failed",
+                      message: "The cleanup could not be completed. Check the server error log for details.",
+                      indicator: "red",
+                    });
+                    $btn.prop("disabled", false).text("Execute cleanup");
+                  },
                 });
               });
             });
           },
           error() {
-            showToast("error", "Preview failed. Check permissions or server logs.");
-          }
+            $primaryBtn.prop("disabled", false).text("Preview impact");
+            frappe.msgprint({
+              title: "Preview failed",
+              message: "Could not load preview. Check your permissions or the server error log.",
+              indicator: "red",
+            });
+          },
         });
       },
     });
@@ -817,7 +851,10 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
             <div class="upeo-title">Biggest tables</div>
             <div class="upeo-subtle">Top 10 by size · includes plain-English meaning</div>
           </div>
-          <div class="upeo-badge">Auto-updating</div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <div class="upeo-badge">Auto-updating</div>
+            <button class="btn btn-default btn-sm upeo-btn" id="upeo-refresh-tables" title="Fetch latest table sizes from the database now">↻ Refresh</button>
+          </div>
         </div>
 
         <div class="table-responsive">
@@ -832,23 +869,8 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
                 <th>Action</th>
               </tr>
             </thead>
-            <tbody>
-              ${big.map(r => `
-                <tr>
-                  <td><b>${frappe.utils.escape_html(r.table_name)}</b></td>
-                  <td>${mb(r.total_mb)}</td>
-                  <td>${r.rows_est || 0}</td>
-                  <td><span class="upeo-badge">${frappe.utils.escape_html(r.importance || "-")}</span></td>
-                  <td style="max-width:420px;">${frappe.utils.escape_html(r.importance_note || "-")}</td>
-                  <td>
-                    ${r.cleanup_allowed
-                      ? `<button class="btn btn-warning btn-sm upeo-btn" data-clean="${frappe.utils.escape_html(r.table_name)}">Clean up</button>
-                         <div class="upeo-subtle" style="margin-top:6px;">${frappe.utils.escape_html(r.cleanup_hint || "")}</div>`
-                      : `<span class="upeo-muted">—</span>`}
-                  </td>
-                </tr>
-              `).join("")}
-              ${big.length ? "" : `<tr><td colspan="6" class="upeo-muted">No table stats yet.</td></tr>`}
+            <tbody id="upeo-tables-body">
+              ${renderTableRows(big)}
             </tbody>
           </table>
         </div>
@@ -933,6 +955,64 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
   // -----------------------------
   // Action bindings
   // -----------------------------
+  // -----------------------------
+  // Table rows helper (used by render + refreshBigTables)
+  // -----------------------------
+  function renderTableRows(rows) {
+    if (!rows || !rows.length) {
+      return `<tr><td colspan="6" class="upeo-muted">No table stats yet.</td></tr>`;
+    }
+    return rows.map(r => `
+      <tr>
+        <td><b>${frappe.utils.escape_html(r.table_name)}</b></td>
+        <td>${mb(r.total_mb)}</td>
+        <td>${r.rows_est || 0}</td>
+        <td><span class="upeo-badge">${frappe.utils.escape_html(r.importance || "-")}</span></td>
+        <td style="max-width:420px;">${frappe.utils.escape_html(r.importance_note || "-")}</td>
+        <td>
+          ${r.cleanup_allowed
+            ? `<button class="btn btn-warning btn-sm upeo-btn" data-clean="${frappe.utils.escape_html(r.table_name)}">Clean up</button>
+               <div class="upeo-subtle" style="margin-top:6px;">${frappe.utils.escape_html(r.cleanup_hint || "")}</div>`
+            : `<span class="upeo-muted">—</span>`}
+        </td>
+      </tr>
+    `).join("");
+  }
+
+  // -----------------------------
+  // Refresh biggest tables only
+  // -----------------------------
+  function refreshBigTables() {
+    const $btn = $("#upeo-refresh-tables");
+    const $tbody = $("#upeo-tables-body");
+
+    $btn.prop("disabled", true).text("Loading…");
+    $tbody.css("opacity", "0.4");
+
+    frappe.call({
+      method: "f_watcher.dashboards.metrics.latest",
+      callback(r) {
+        const rows = (r.message || {}).big_tables || [];
+        $tbody.html(renderTableRows(rows)).css("opacity", "1");
+        // re-bind cleanup buttons on the new rows
+        $tbody.find("[data-clean]").off("click").on("click", function () {
+          cleanupDialog($(this).data("clean"));
+        });
+        $btn.prop("disabled", false).text("↻ Refresh");
+        showToast("ok", "Table sizes refreshed.");
+      },
+      error() {
+        $tbody.css("opacity", "1");
+        $btn.prop("disabled", false).text("↻ Refresh");
+        frappe.msgprint({
+          title: "Refresh failed",
+          message: "Could not fetch latest table data. Check server logs.",
+          indicator: "red",
+        });
+      },
+    });
+  }
+
   function bindActions() {
     $("#upeo-restart-workers").off("click").on("click", () => {
       reasonDialog(
@@ -977,6 +1057,8 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
     $("[data-clean]").off("click").on("click", function () {
       cleanupDialog($(this).data("clean"));
     });
+
+    $("#upeo-refresh-tables").off("click").on("click", () => refreshBigTables());
   }
 
   // -----------------------------

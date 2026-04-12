@@ -21,12 +21,20 @@ def latest():
         order_by="timestamp desc",
         limit=10,
     )
-    big_tables = frappe.db.get_all(
-        "F Watcher DB Table Storage",
-        fields=["timestamp","table_name","total_mb","rows_est","importance","importance_note","cleanup_allowed","cleanup_hint"],
-        order_by="total_mb desc",
-        limit=10,
-    )
+    big_tables = frappe.db.sql("""
+        SELECT t.table_name, t.total_mb, t.rows_est,
+               t.importance, t.importance_note,
+               t.cleanup_allowed, t.cleanup_hint, t.`timestamp`
+        FROM `tabF Watcher DB Table Storage` t
+        INNER JOIN (
+            SELECT table_name, MAX(`timestamp`) AS latest_ts
+            FROM `tabF Watcher DB Table Storage`
+            GROUP BY table_name
+        ) latest ON t.table_name = latest.table_name
+               AND t.`timestamp` = latest.latest_ts
+        ORDER BY t.total_mb DESC
+        LIMIT 10
+    """, as_dict=True)
 
     return {
         "system": system[0] if system else None,

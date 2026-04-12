@@ -1,0 +1,253 @@
+# F Watcher — Upgrade Tracker
+
+> Last updated: 2026-04-13
+> Branch: version-16
+
+---
+
+## Legend
+
+| Symbol | Meaning |
+|--------|---------|
+| [x] | Done |
+| [-] | In progress |
+| [ ] | Pending |
+| [!] | Blocked |
+
+---
+
+## Phase 1 — Stability & Correctness
+> Full spec: [phase-1.md](phase-1.md)
+> **Goal:** Fix all known bugs. No collector should silently fail. No action should crash.
+
+### Bug Fixes — Done
+
+| # | Task | File |
+|---|------|------|
+| BUG-01 | [x] `affected_rows` AttributeError on cleanup execute | `actions/cleanup.py` |
+| BUG-02 | [x] Duplicate table rows in "Biggest tables" — missing GROUP BY | `dashboards/metrics.py` |
+| BUG-03 | [x] Unquoted `timestamp` reserved keyword in raw SQL | `dashboards/metrics.py` |
+| BUG-04 | [x] `frappe.only_for` blocking System Manager (role not in fixtures) | `actions/cleanup.py` |
+| BUG-05a | [x] Cleanup dialog uses stale `values` at execute time | `page/f_watcher_control.js` |
+| BUG-05b | [x] Global `#upeo-exec-cleanup` selector binds to detached elements | `page/f_watcher_control.js` |
+| BUG-05c | [x] Execute button shown when preview returns 0 records | `page/f_watcher_control.js` |
+| BUG-05d | [x] Preview error() uses page toast hidden behind dialog backdrop | `page/f_watcher_control.js` |
+| BUG-05e | [x] No freeze on "Preview impact" — double-click fires concurrent calls | `page/f_watcher_control.js` |
+| BUG-05f | [x] No lock on Execute — rapid clicks stack frappe.confirm dialogs | `page/f_watcher_control.js` |
+| BUG-06 | [x] `app_health.py` queries Scheduled Job Type for status (column doesn't exist) | `collectors/app_health.py` |
+| LV-01 | [x] `$(wrapper).on('hide')` never fires — poll never clears on navigation | `page/f_watcher_log_viewer.js` |
+| LV-02 | [x] Global `$('#...')` selectors break on page re-render | `page/f_watcher_log_viewer.js` |
+| LV-03 | [x] Event handlers accumulate on each re-render | `page/f_watcher_log_viewer.js` |
+| LV-04 | [x] No error callback — failures are silent | `page/f_watcher_log_viewer.js` |
+| LV-05 | [x] Auto-scroll fights manual scroll (yanks to bottom every 4s) | `page/f_watcher_log_viewer.js` |
+| LV-06 | [x] setInterval stacks concurrent requests on slow server | `page/f_watcher_log_viewer.js` |
+| LV-07 | [x] `font-family: inherit, monospace` — invalid CSS, breaks page load | `page/f_watcher_log_viewer.html` |
+| LV-08 | [x] No server-side lines cap | `api/logs.py` |
+
+### Bug Fixes — Pending
+
+| # | Task | File |
+|---|------|------|
+| BUG-07 | [ ] `frappe.make_post_request` doesn't exist — webhooks never fire | `collectors/alerting.py` |
+| BUG-08 | [ ] "System Notification" alert channel not implemented | `collectors/alerting.py` |
+| BUG-09 | [ ] Missing `frappe.db.commit()` in alerting engine | `collectors/alerting.py` |
+| BUG-10 | [ ] `get_latest_metric` missing Backup/Security/Redis types | `collectors/alerting.py` |
+| BUG-11 | [ ] `check_node_memory()` writes partial rows to System Metric | `collectors/infrastructure.py` |
+| BUG-12 | [ ] `datetime.utcnow()` deprecated in Python 3.12+ | `collectors/infrastructure.py` |
+| BUG-13 | [ ] Missing `frappe.db.commit()` after slow query loop | `collectors/database.py` |
+| BUG-14 | [ ] `frappe.db.commit()` called inside loop | `collectors/apm.py` |
+| BUG-15 | [ ] Healthy backup state never recorded | `collectors/backups.py` |
+| BUG-16 | [ ] Sessions metric inserted even at 0 active sessions | `collectors/security.py` |
+
+### Role & Permissions
+
+| Task | Status |
+|------|--------|
+| Define `F Watcher Operator` role in fixtures | [ ] |
+| Define `F Watcher Viewer` role in fixtures | [ ] |
+| Add DocType permission rows for all 10 DocTypes | [ ] |
+
+### Metric Data Retention
+
+| Task | Status |
+|------|--------|
+| Create `collectors/retention.py` | [ ] |
+| Register daily retention job in `hooks.py` (02:00) | [ ] |
+
+### Test Suite
+
+| Task | Status |
+|------|--------|
+| Tests for `actions/cleanup.py` | [ ] |
+| Tests for `actions/control.py` | [ ] |
+| Tests for `dashboards/metrics.py` | [ ] |
+| Tests for `collectors/system.py` | [ ] |
+| Tests for `collectors/alerting.py` | [ ] |
+
+---
+
+## Phase 2 — Visibility & Usability
+> Full spec: [phase-2.md](phase-2.md)
+> **Goal:** Charts, health map, alert badge, log enhancements, control center upgrades.
+
+| Task | Status |
+|------|--------|
+| `history()` endpoint — time-bucketed metrics | [ ] |
+| Time-range selector in Control Center (1h/6h/24h/7d) | [ ] |
+| CPU/RAM/Disk line chart (Frappe Charts, area fill) | [ ] |
+| Queue depth chart per queue | [ ] |
+| DB size trend chart | [ ] |
+| `api/health.py` — MySQL, Redis, Scheduler, Workers status | [ ] |
+| Dependency health map row in Control Center header | [ ] |
+| `notification_config` hook + `notifications.py` for navbar badge | [ ] |
+| `api/log_stream.py` — WebSocket log tailing | [ ] |
+| Replace Log Viewer polling with `frappe.realtime` listener | [ ] |
+| `collectors/digest.py` — daily email digest | [ ] |
+| Register digest at 08:00 daily in `hooks.py` | [ ] |
+| 2.6a — Log Viewer search/filter bar | [ ] |
+| 2.6b — Log Viewer line color coding by severity | [ ] |
+| 2.6c — Log Viewer pause/resume button | [ ] |
+| 2.6d — Log Viewer copy + download buttons | [ ] |
+| 2.7a — Collector health panel (last-run status per collector) | [ ] |
+| 2.7b — Active alert rules panel with live values | [ ] |
+| 2.7c — System health score (0–100) badge in header | [ ] |
+| 2.7d — Retry failed jobs button per queue in UI | [ ] |
+
+---
+
+## Phase 3 — Intelligence & Advanced Monitoring
+> Full spec: [phase-3.md](phase-3.md)
+> **Goal:** Anomaly detection, query explorer, backup integrity, threshold recommendations.
+
+| Task | Status |
+|------|--------|
+| `collectors/anomaly.py` — Z-score based spike detection | [ ] |
+| Register anomaly collector every 15 min | [ ] |
+| `f-watcher-query-explorer` page | [ ] |
+| `query_stats()` endpoint — grouped slow queries | [ ] |
+| Gzip integrity check in `collectors/backups.py` | [ ] |
+| `recommend_thresholds()` API — P95 over 7 days | [ ] |
+| Alert Rule "Get Recommendations" button | [ ] |
+| `site` filter in `latest()` and `history()` | [ ] |
+| Site-selector dropdown in Control Center | [ ] |
+| `compare()` multi-site endpoint | [ ] |
+| Redis-based rate limiting in `api/logs.py` | [ ] |
+| Webhook URL validation in Alert Rule `validate()` | [ ] |
+| 3.8a — `cooldown_minutes` field on Alert Rule | [ ] |
+| 3.8b — Auto-resolve detection in alerting engine | [ ] |
+| 3.8c — `test_rule()` API + "Test now" button | [ ] |
+| 3.9a — Queue collector: dynamic queue names via `get_queue_names()` | [ ] |
+| 3.9b — DB storage: flag index bloat (`index_mb > data_mb * 1.5`) | [ ] |
+
+---
+
+## Phase 4 — Operational Control & Automation
+> Full spec: [phase-4.md](phase-4.md)
+> **Goal:** Maintenance windows, auto-remediation, queue inspector, cache manager, custom cleanup rules.
+
+| Task | Status |
+|------|--------|
+| `F Watcher Maintenance Window` DocType | [ ] |
+| `is_maintenance_active()` check in alerting engine | [ ] |
+| "Start maintenance" button + active banner in Control Center | [ ] |
+| `auto_remediate` + `remediation_action` fields on Alert Rule | [ ] |
+| `_run_remediation()` in alerting engine | [ ] |
+| `queue_jobs()` API endpoint — list/inspect jobs | [ ] |
+| Queue job inspector panel in Control Center | [ ] |
+| Per-job cancel + per-queue retry-all buttons | [ ] |
+| `api/cache.py` — `stats()` and `flush_cache()` | [ ] |
+| Cache card in Control Center right column | [ ] |
+| `F Watcher Cleanup Rule` DocType (custom rules) | [ ] |
+| Merge custom rules into `cleanup.py` | [ ] |
+
+---
+
+## Phase 5 — Reporting & Analytics
+> Full spec: [phase-5.md](phase-5.md)
+> **Goal:** CSV export, uptime tracking, period comparison, error patterns, forecasting.
+
+| Task | Status |
+|------|--------|
+| `api/export.py` — `system_metrics_csv()` | [ ] |
+| Export CSV buttons in Control Center | [ ] |
+| `F Watcher Uptime Record` DocType | [ ] |
+| `collectors/uptime.py` — every 5 min | [ ] |
+| `uptime_summary()` API + uptime % badge in header | [ ] |
+| `compare_periods()` endpoint — this vs prior period | [ ] |
+| Delta arrows (↑/↓) next to KPI values | [ ] |
+| `error_patterns()` API + Error Patterns table | [ ] |
+| `collectors/weekly_report.py` — Monday 08:00 | [ ] |
+| Register weekly report in `hooks.py` | [ ] |
+| `disk_forecast()` API + "full in ~N days" in disk KPI | [ ] |
+
+---
+
+## Phase 6 — Security & Compliance
+> Full spec: [phase-6.md](phase-6.md)
+> **Goal:** IP brute force, session manager, API key monitor, permission audit, SSL dashboard.
+
+| Task | Status |
+|------|--------|
+| IP-based brute force detection in `security.py` | [ ] |
+| Suspicious activity patterns (bulk delete, permission changes) | [ ] |
+| `api/sessions.py` — `list_sessions()` + `force_logout()` | [ ] |
+| Active Sessions card in Control Center | [ ] |
+| `collectors/api_keys.py` — stale + newly created keys | [ ] |
+| Register API key collector hourly in `hooks.py` | [ ] |
+| `permission_changes()` API + audit timeline | [ ] |
+| Always write SSL metric record (not only on alert) | [ ] |
+| SSL expiry KPI card in Control Center | [ ] |
+
+---
+
+## Phase 7 — Developer Tools & Framework Health
+> Full spec: [phase-7.md](phase-7.md)
+> **Goal:** App versions, patch history, custom field audit, job inspector, scheduler timeline.
+
+| Task | Status |
+|------|--------|
+| `api/apps.py` — `installed_apps()` with git info | [ ] |
+| Installed Apps card in Control Center | [ ] |
+| `patch_history()` API endpoint | [ ] |
+| Patch history section in Control Center | [ ] |
+| `api/customizations.py` — custom field/script audit | [ ] |
+| Customization Audit card in Control Center | [ ] |
+| `job_detail()` API — full traceback for failed jobs | [ ] |
+| `scheduler_timeline()` API | [ ] |
+| Scheduler timeline grid in Control Center | [ ] |
+| `slow_requests()` detail endpoint | [ ] |
+| Slow Requests section in DB Query Explorer | [ ] |
+
+---
+
+## Summary
+
+| Phase | Description | Tasks | Done | Left |
+|-------|-------------|-------|------|------|
+| Phase 1 | Stability & Correctness | 34 | 19 | 15 |
+| Phase 2 | Visibility & Usability | 20 | 0 | 20 |
+| Phase 3 | Intelligence & Advanced Monitoring | 17 | 0 | 17 |
+| Phase 4 | Operational Control & Automation | 12 | 0 | 12 |
+| Phase 5 | Reporting & Analytics | 11 | 0 | 11 |
+| Phase 6 | Security & Compliance | 9 | 0 | 9 |
+| Phase 7 | Developer Tools & Framework Health | 11 | 0 | 11 |
+| **Total** | | **114** | **19** | **95** |
+
+---
+
+## Changelog
+
+| Date | What |
+|------|------|
+| 2026-04-13 | Initial phase docs created (phase-1 to phase-3) |
+| 2026-04-13 | BUG-01 to BUG-06: Fixed 6 core bugs (cleanup, dashboard, app_health) |
+| 2026-04-13 | LV-01 to LV-08: Fixed 8 log viewer bugs |
+| 2026-04-13 | Added Refresh button to Biggest Tables section |
+| 2026-04-13 | Discovered BUG-07 to BUG-16 across alerting and collector files |
+| 2026-04-13 | Added sections 1.5–1.7 (alerting bugs, collector bugs, LV summary) |
+| 2026-04-13 | Added sections 2.6–2.7 (log viewer + control center enhancements) |
+| 2026-04-13 | Added sections 3.8–3.9 (alerting intelligence + collector improvements) |
+| 2026-04-13 | Created phase-4.md (Operational Control & Automation) |
+| 2026-04-13 | Created phase-5.md (Reporting & Analytics) |
+| 2026-04-13 | Created phase-6.md (Security & Compliance) |
+| 2026-04-13 | Created phase-7.md (Developer Tools & Framework Health) |

@@ -1,35 +1,59 @@
 <style>
-    .log-container {
+    .fw-log-container {
         background-color: #1e1e1e;
         color: #00ff00;
         padding: 15px;
-        font-family: inherit, monospace;
+        font-family: monospace;
         height: 600px;
         overflow-y: scroll;
         border-radius: 5px;
         white-space: pre-wrap;
         box-shadow: inset 0 0 10px #000;
+        font-size: 12px;
+        line-height: 1.5;
     }
-    .log-controls {
-        margin-bottom: 20px;
-        padding: 10px;
+    .fw-log-controls {
+        margin-bottom: 16px;
+        padding: 12px 14px;
         background: var(--bg-color);
         border: 1px solid var(--border-color);
         border-radius: 4px;
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .fw-log-controls label {
+        margin: 0;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+    #log_status.text-danger {
+        color: var(--red-500, #ef4444);
     }
 </style>
 
-<div class="log-controls">
-    <label class="control-label" style="display:inline-block; margin-right:10px;">Select Log File:</label>
-    <select id="log_file_selector" class="form-control" style="width: 250px; display: inline-block;">
+<div class="fw-log-controls">
+    <label for="log_file_selector">Log file:</label>
+    <select id="log_file_selector" class="form-control" style="width:260px;">
         <option value="frappe.log" selected>frappe.log (Core App Flow)</option>
         <option value="web.error.log">web.error.log (Nginx / Gunicorn)</option>
         <option value="worker.error.log">worker.error.log (Background Jobs)</option>
         <option value="schedule.error.log">schedule.error.log (Scheduler)</option>
         <option value="node-socketio.error.log">node-socketio.error.log (Socket & Web)</option>
     </select>
-    <button class="btn btn-primary btn-sm" id="refresh_log_btn" style="margin-left: 10px;">Refresh Logs</button>
-    <span id="log_status" class="text-muted" style="margin-left: 15px;"></span>
+
+    <label for="log_lines">Lines:</label>
+    <select id="log_lines" class="form-control" style="width:90px;">
+        <option value="50">50</option>
+        <option value="100">100</option>
+        <option value="200" selected>200</option>
+        <option value="500">500</option>
+    </select>
+
+    <button class="btn btn-primary btn-sm" id="refresh_log_btn">↻ Refresh now</button>
+
+    <span id="log_status" class="text-muted" style="margin-left:4px;font-size:12px;"></span>
 </div>
 
-<div id="log_output" class="log-container">Connecting to server and streaming logs...</div>
+<div id="log_output" class="fw-log-container">Connecting to server and streaming logs…</div>
