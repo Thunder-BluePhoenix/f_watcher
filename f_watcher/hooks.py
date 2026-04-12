@@ -11,15 +11,14 @@ app_license = "gpl-3.0"
 # required_apps = []
 
 # Each item in the list will be shown as an app in the apps page
-# add_to_apps_screen = [
-# 	{
-# 		"name": "f_watcher",
-# 		"logo": "/assets/f_watcher/logo.png",
-# 		"title": "F Watcher",
-# 		"route": "/f_watcher",
-# 		"has_permission": "f_watcher.api.permission.has_app_permission"
-# 	}
-# ]
+add_to_apps_screen = [
+	{
+		"name": "f_watcher",
+		"logo": "/assets/f_watcher/images/f_watcher_logo.png",
+		"title": "F Watcher",
+		"route": "/app/f-watcher",
+	}
+]
 
 # Includes in <head>
 # ------------------
