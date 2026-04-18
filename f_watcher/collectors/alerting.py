@@ -2,6 +2,7 @@ from __future__ import annotations
 import frappe
 from frappe.utils import now_datetime, time_diff_in_seconds
 
+
 def evaluate_and_alert():
     rules = frappe.get_all("F Watcher Alert Rule", filters={"is_active": 1}, fields=["*"])
 
@@ -15,11 +16,13 @@ def evaluate_and_alert():
             if value is None:
                 continue
 
+            cooldown_secs = (rule.cooldown_minutes or 15) * 60
+
             if evaluate_condition(value, rule.condition, rule.threshold_value):
-                # BUG-09 fix: check cooldown before doing anything else
+                # 3.8a: use per-rule cooldown_minutes
                 if rule.last_triggered:
                     diff = time_diff_in_seconds(now_datetime(), rule.last_triggered)
-                    if diff < 900:
+                    if diff < cooldown_secs:
                         continue
 
                 msg = (
@@ -29,15 +32,10 @@ def evaluate_and_alert():
                 )
                 status = "Triggered"
 
-                # BUG-07 fix: use requests instead of frappe.make_post_request (doesn't exist)
                 if rule.alert_channel == "Webhook" and rule.webhook_url:
                     try:
                         import requests
-                        requests.post(
-                            rule.webhook_url,
-                            json={"text": msg},
-                            timeout=5,
-                        )
+                        requests.post(rule.webhook_url, json={"text": msg}, timeout=5)
                     except Exception as e:
                         status = "Failed to Send"
                         msg += f" [Webhook error: {e}]"
@@ -53,7 +51,6 @@ def evaluate_and_alert():
                         status = "Failed to Send"
                         msg += f" [Email error: {e}]"
 
-                # BUG-08 fix: implement System Notification channel
                 elif rule.alert_channel == "System Notification":
                     frappe.publish_realtime(
                         event="fw_alert",
@@ -71,14 +68,56 @@ def evaluate_and_alert():
                 }).insert(ignore_permissions=True)
 
                 frappe.db.set_value("F Watcher Alert Rule", rule.name, "last_triggered", now_datetime())
-                frappe.db.commit()  # BUG-09 fix: commit after every alert
+                frappe.db.commit()
+
+            else:
+                # 3.8b: auto-resolve — insert Resolved record if last log was Triggered
+                last_log = frappe.db.get_value(
+                    "F Watcher Alert Log",
+                    {"alert_rule": rule.name},
+                    ["status", "name"],
+                    order_by="timestamp desc",
+                    as_dict=True,
+                )
+                if last_log and last_log.status == "Triggered":
+                    frappe.get_doc({
+                        "doctype": "F Watcher Alert Log",
+                        "alert_rule": rule.name,
+                        "timestamp": now_datetime(),
+                        "status": "Resolved",
+                        "message": f"Alert resolved: {rule.property_name} is now {value}",
+                        "metric_value": str(value),
+                    }).insert(ignore_permissions=True)
+                    frappe.db.commit()
 
         except Exception as e:
             frappe.log_error(title="F-Watcher Alerting Engine Failed", message=str(e))
 
 
+@frappe.whitelist()
+def test_rule(rule_name: str):
+    rule = frappe.get_doc("F Watcher Alert Rule", rule_name)
+    metric = get_latest_metric(rule.metric_type)
+    if not metric:
+        return {"status": "no_data", "message": "No metric data available yet."}
+    value = metric.get(rule.property_name)
+    if value is None:
+        return {"status": "no_data", "message": f"Property '{rule.property_name}' not found in latest metric."}
+    would_fire = evaluate_condition(value, rule.condition, rule.threshold_value)
+    return {
+        "status": "would_fire" if would_fire else "ok",
+        "current_value": value,
+        "threshold": rule.threshold_value,
+        "condition": rule.condition,
+        "message": (
+            f"Would fire: {rule.property_name} = {value} {rule.condition} {rule.threshold_value}"
+            if would_fire else
+            f"Would NOT fire: {rule.property_name} = {value} (threshold: {rule.condition} {rule.threshold_value})"
+        ),
+    }
+
+
 def get_latest_metric(metric_type):
-    # BUG-10 fix: added Redis; Backup and Security are alert-only, no metric doctype
     mapping = {
         "System":   "F Watcher System Metric",
         "Database": "F Watcher DB Metric",
@@ -88,7 +127,6 @@ def get_latest_metric(metric_type):
     doctype = mapping.get(metric_type)
     if not doctype:
         return None
-
     res = frappe.get_all(doctype, fields=["*"], order_by="creation desc", limit=1)
     return res[0] if res else None
 

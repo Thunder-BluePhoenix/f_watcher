@@ -121,23 +121,23 @@
 
 | Task | Status |
 |------|--------|
-| `collectors/anomaly.py` — Z-score based spike detection | [ ] |
-| Register anomaly collector every 15 min | [ ] |
-| `f-watcher-query-explorer` page | [ ] |
-| `query_stats()` endpoint — grouped slow queries | [ ] |
-| Gzip integrity check in `collectors/backups.py` | [ ] |
-| `recommend_thresholds()` API — P95 over 7 days | [ ] |
-| Alert Rule "Get Recommendations" button | [ ] |
-| `site` filter in `latest()` and `history()` | [ ] |
-| Site-selector dropdown in Control Center | [ ] |
-| `compare()` multi-site endpoint | [ ] |
-| Redis-based rate limiting in `api/logs.py` | [ ] |
-| Webhook URL validation in Alert Rule `validate()` | [ ] |
-| 3.8a — `cooldown_minutes` field on Alert Rule | [ ] |
-| 3.8b — Auto-resolve detection in alerting engine | [ ] |
-| 3.8c — `test_rule()` API + "Test now" button | [ ] |
-| 3.9a — Queue collector: dynamic queue names via `get_queue_names()` | [ ] |
-| 3.9b — DB storage: flag index bloat (`index_mb > data_mb * 1.5`) | [ ] |
+| `collectors/anomaly.py` — Z-score based spike detection | [x] |
+| Register anomaly collector every 15 min | [x] |
+| `f-watcher-query-explorer` page | [x] |
+| `query_stats()` endpoint — grouped slow queries | [x] |
+| Gzip integrity check in `collectors/backups.py` | [x] |
+| `recommend_thresholds()` API — P95 over 7 days | [x] |
+| Alert Rule "Get Recommendations" button | [x] |
+| `site` filter in `latest()` and `history()` | [x] |
+| Site-selector dropdown in Control Center | [x] |
+| `compare()` multi-site endpoint | [x] |
+| Redis-based rate limiting in `api/logs.py` | [x] |
+| Webhook URL validation in Alert Rule `validate()` | [x] |
+| 3.8a — `cooldown_minutes` field on Alert Rule | [x] |
+| 3.8b — Auto-resolve detection in alerting engine | [x] |
+| 3.8c — `test_rule()` API + "Test now" button | [x] |
+| 3.9a — Queue collector: dynamic queue names via `get_queue_names()` | [x] |
+| 3.9b — DB storage: flag index bloat (`index_mb > data_mb * 1.5`) | [x] |
 
 ---
 
@@ -226,12 +226,12 @@
 |-------|-------------|-------|------|------|
 | Phase 1 | Stability & Correctness | 34 | 34 | 0 |
 | Phase 2 | Visibility & Usability | 20 | 20 | 0 |
-| Phase 3 | Intelligence & Advanced Monitoring | 17 | 0 | 17 |
+| Phase 3 | Intelligence & Advanced Monitoring | 17 | 17 | 0 |
 | Phase 4 | Operational Control & Automation | 12 | 0 | 12 |
 | Phase 5 | Reporting & Analytics | 11 | 0 | 11 |
 | Phase 6 | Security & Compliance | 9 | 0 | 9 |
 | Phase 7 | Developer Tools & Framework Health | 11 | 0 | 11 |
-| **Total** | | **114** | **54** | **60** |
+| **Total** | | **114** | **71** | **43** |
 
 ---
 
@@ -259,3 +259,4 @@
 | 2026-04-13 | BUG-16: Fixed security.py — sessions metric only inserted when count > 0 |
 | 2026-04-18 | Phase 1 complete: roles/permissions, retention collector, full test suite |
 | 2026-04-18 | Phase 2 complete: charts, health map, alert badge, log streaming, digest, queue panel |
+| 2026-04-18 | Phase 3 complete: anomaly detection, query explorer, backup integrity, recommendations, multi-site, alerting intelligence |

@@ -1,7 +1,17 @@
 import os
+import gzip
 import glob
 import frappe
 from frappe.utils import now_datetime, time_diff_in_hours
+
+
+def _is_valid_gzip(path: str) -> bool:
+    try:
+        with gzip.open(path, "rb") as f:
+            f.read(512)
+        return True
+    except Exception:
+        return False
 
 def collect():
     site_path = frappe.get_site_path()
@@ -28,7 +38,13 @@ def collect():
     
     if diff_hours > 24:
         record_alert(f"Critical: The most recent backup is {diff_hours:.1f} hours old. Backup process may be failing.")
-    else:
+        return
+
+    if not _is_valid_gzip(latest_file):
+        record_alert(f"Critical: Latest backup {os.path.basename(latest_file)} is corrupt or unreadable.")
+        return
+
+    if True:  # healthy branch
         # BUG-15: healthy state was never recorded — dashboard had no backup history at all
         import os as _os
         frappe.get_doc({

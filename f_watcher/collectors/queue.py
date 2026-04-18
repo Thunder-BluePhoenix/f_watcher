@@ -7,7 +7,13 @@ from frappe.utils.background_jobs import get_redis_conn
 def collect():
     redis = get_redis_conn()
 
-    for qname in ["short", "default", "long"]:
+    try:
+        from frappe.utils.background_jobs import get_queue_names
+        queue_names = get_queue_names()
+    except Exception:
+        queue_names = ["short", "default", "long"]
+
+    for qname in queue_names:
         q = Queue(qname, connection=redis)
         frappe.get_doc({
             "doctype": "F Watcher Queue Metric",

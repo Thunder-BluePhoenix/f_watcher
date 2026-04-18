@@ -165,6 +165,7 @@ scheduler_events = {
         ],
         "*/15 * * * *": [
             "f_watcher.collectors.security.collect",
+            "f_watcher.collectors.anomaly.collect",
         ],
         "0 * * * *": [
             "f_watcher.collectors.backups.collect",

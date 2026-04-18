@@ -13,6 +13,7 @@
   "condition",
   "threshold_value",
   "property_name",
+  "cooldown_minutes",
   "column_break_1",
   "alert_channel",
   "webhook_url",
@@ -60,6 +61,13 @@
    "fieldname": "property_name",
    "fieldtype": "Data",
    "label": "Property Name"
+  },
+  {
+   "default": "15",
+   "description": "Minimum minutes between repeat alerts for this rule",
+   "fieldname": "cooldown_minutes",
+   "fieldtype": "Int",
+   "label": "Cooldown (minutes)"
   },
   {
    "fieldname": "column_break_1",

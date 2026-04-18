@@ -1014,6 +1014,7 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
 
   // 2.1: render time-series charts
   let currentHours = 6;
+  let currentSite  = null;   // null = all sites (single-site bench default)
   function renderCharts(data) {
     if (!data || !data.system || !data.system.length) {
       $charts.html(`
@@ -1359,9 +1360,11 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
   }
 
   function fetchHistory() {
+    const args = { hours: currentHours };
+    if (currentSite) args.site = currentSite;
     frappe.call({
       method: "f_watcher.dashboards.metrics.history",
-      args: { hours: currentHours },
+      args,
       callback(r) { renderCharts(r.message || {}); },
     });
   }
@@ -1373,11 +1376,46 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
     });
   }
 
+  // 3.5: site selector — populate from compare() and wire to refresh
+  function initSiteSelector() {
+    frappe.call({
+      method: "f_watcher.dashboards.metrics.compare",
+      callback(r) {
+        const sites = Object.keys(r.message || {});
+        if (sites.length < 2) return;  // single-site bench, no need for selector
+
+        const opts = sites.map(s =>
+          `<option value="${frappe.utils.escape_html(s)}">${frappe.utils.escape_html(s)}</option>`
+        ).join("");
+
+        const $sel = $(`
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+            <span class="upeo-subtle" style="font-size:12px;">Site:</span>
+            <select id="upeo-site-select" class="form-control" style="width:220px;font-size:13px;">
+              <option value="">All sites</option>
+              ${opts}
+            </select>
+          </div>
+        `).prependTo($body);
+
+        $sel.find("#upeo-site-select").on("change", function() {
+          currentSite = $(this).val() || null;
+          refresh(true);
+          fetchHistory();
+        });
+      },
+    });
+  }
+
   function refresh(silent = false) {
     if (!silent) renderLoading();
 
+    const args = {};
+    if (currentSite) args.site = currentSite;
+
     frappe.call({
       method: "f_watcher.dashboards.metrics.latest",
+      args,
       callback(r) {
         const data = r.message || {};
         render(data);
@@ -1407,6 +1445,9 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
 
     // Charts load once on start
     fetchHistory();
+
+    // Site selector (no-op on single-site bench)
+    initSiteSelector();
   }
 
   $(wrapper).on("remove", () => {

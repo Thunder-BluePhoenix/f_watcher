@@ -99,3 +99,18 @@ def collect(top_n: int = 25):
             "cleanup_allowed": cleanup_allowed,
             "cleanup_hint": cleanup_hint,
         }).insert(ignore_permissions=True)
+
+        # 3.9b: flag index bloat
+        if float(r.index_mb or 0) > float(r.data_mb or 0) * 1.5 and float(r.total_mb or 0) > 50:
+            frappe.get_doc({
+                "doctype": "F Watcher Alert Log",
+                "timestamp": ts,
+                "status": "Triggered",
+                "message": (
+                    f"Index bloat: {r.table_name} indexes ({r.index_mb:.0f} MB) "
+                    f"> data ({r.data_mb:.0f} MB). Consider ANALYZE TABLE."
+                ),
+                "metric_value": f"{r.index_mb:.1f} MB indexes",
+            }).insert(ignore_permissions=True)
+
+    frappe.db.commit()
