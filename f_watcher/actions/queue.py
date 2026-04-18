@@ -65,3 +65,46 @@ def cancel_job(queue_name="default", job_id=None):
         return {"status": "removed"}
     except Exception as e:
         frappe.throw(f"Could not cancel job: {e}")
+
+
+@frappe.whitelist(allow_guest=False)
+def job_detail(queue_name="default", job_id=None):
+    _check_permission()
+    if not job_id:
+        frappe.throw("job_id is required")
+    redis = get_redis_conn()
+    q = Queue(queue_name, connection=redis)
+    try:
+        job = q.fetch_job(job_id)
+        if not job:
+            from rq.job import Job as RQJob
+            job = RQJob.fetch(job_id, connection=redis)
+        if not job:
+            frappe.throw("Job not found")
+        return {
+            "id": job.id,
+            "func": job.func_name,
+            "status": str(job.get_status()),
+            "enqueued_at": str(job.enqueued_at or ""),
+            "ended_at": str(getattr(job, "ended_at", None) or ""),
+            "exc_info": job.exc_info or "",
+            "description": job.description or "",
+        }
+    except Exception as e:
+        frappe.throw(f"Could not fetch job detail: {e}")
+
+
+@frappe.whitelist(allow_guest=False)
+def scheduler_timeline(hours: int = 24):
+    if not frappe.has_permission("F Watcher Queue Metric", "read"):
+        frappe.throw("Not permitted", frappe.PermissionError)
+    if not frappe.db.exists("DocType", "Scheduled Job Log"):
+        return []
+    since = frappe.utils.add_to_date(None, hours=-int(hours))
+    return frappe.db.sql("""
+        SELECT scheduled_job_type, status, details, creation
+        FROM `tabScheduled Job Log`
+        WHERE creation >= %(since)s
+        ORDER BY creation DESC
+        LIMIT 100
+    """, {"since": since}, as_dict=True)

@@ -206,17 +206,17 @@
 
 | Task | Status |
 |------|--------|
-| `api/apps.py` — `installed_apps()` with git info | [ ] |
-| Installed Apps card in Control Center | [ ] |
-| `patch_history()` API endpoint | [ ] |
-| Patch history section in Control Center | [ ] |
-| `api/customizations.py` — custom field/script audit | [ ] |
-| Customization Audit card in Control Center | [ ] |
-| `job_detail()` API — full traceback for failed jobs | [ ] |
-| `scheduler_timeline()` API | [ ] |
-| Scheduler timeline grid in Control Center | [ ] |
-| `slow_requests()` detail endpoint | [ ] |
-| Slow Requests section in DB Query Explorer | [ ] |
+| `api/apps.py` — `installed_apps()` with git info | [x] |
+| Installed Apps card in Control Center | [x] |
+| `patch_history()` API endpoint | [x] |
+| Patch history section in Control Center | [x] |
+| `api/customizations.py` — custom field/script audit | [x] |
+| Customization Audit card in Control Center | [x] |
+| `job_detail()` API — full traceback for failed jobs | [x] |
+| `scheduler_timeline()` API | [x] |
+| Scheduler timeline grid in Control Center | [x] |
+| `slow_requests()` detail endpoint | [x] |
+| Slow Requests section in DB Query Explorer | [x] |
 
 ---
 
@@ -230,8 +230,8 @@
 | Phase 4 | Operational Control & Automation | 12 | 12 | 0 |
 | Phase 5 | Reporting & Analytics | 11 | 11 | 0 |
 | Phase 6 | Security & Compliance | 9 | 9 | 0 |
-| Phase 7 | Developer Tools & Framework Health | 11 | 0 | 11 |
-| **Total** | | **114** | **103** | **11** |
+| Phase 7 | Developer Tools & Framework Health | 11 | 11 | 0 |
+| **Total** | | **114** | **114** | **0** |
 
 ---
 

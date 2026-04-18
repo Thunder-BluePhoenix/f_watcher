@@ -1,3 +1,4 @@
+import json
 import frappe
 from frappe.utils import now_datetime
 
@@ -14,14 +15,24 @@ def _check_permission():
 @frappe.whitelist()
 def list_sessions():
     _check_permission()
-    return frappe.db.sql("""
-        SELECT sid, user, ipaddress, lastupdate, status
+    rows = frappe.db.sql("""
+        SELECT sid, user, sessiondata, lastupdate, status
         FROM `tabSessions`
         WHERE user != 'Guest'
           AND user IS NOT NULL
         ORDER BY lastupdate DESC
         LIMIT 50
     """, as_dict=True)
+
+    for row in rows:
+        try:
+            data = json.loads(row.get("sessiondata") or "{}")
+            row["ipaddress"] = data.get("session_ip") or ""
+        except Exception:
+            row["ipaddress"] = ""
+        del row["sessiondata"]
+
+    return rows
 
 
 @frappe.whitelist()

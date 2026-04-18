@@ -284,6 +284,10 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
   const $errorPatterns   = $(`<div style="margin-top:12px;"></div>`).appendTo($body);
   const $sessionsCard    = $(`<div style="margin-top:12px;"></div>`).appendTo($body);
   const $sslCard         = $(`<div style="margin-top:12px;"></div>`).appendTo($body);
+  const $appsCard        = $(`<div style="margin-top:12px;"></div>`).appendTo($body);
+  const $patchCard       = $(`<div style="margin-top:12px;"></div>`).appendTo($body);
+  const $customCard      = $(`<div style="margin-top:12px;"></div>`).appendTo($body);
+  const $schedulerCard   = $(`<div style="margin-top:12px;"></div>`).appendTo($body);
 
   // One premium tooltip element reused for all tips
   let $tip = $("#upeo-tooltip");
@@ -1594,6 +1598,156 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
     });
   }
 
+  // 7.1: Installed Apps card
+  function renderAppsCard() {
+    frappe.call({
+      method: "f_watcher.api.apps.installed_apps",
+      callback(r) {
+        const apps = r.message || [];
+        const rows = apps.map(a => `
+          <tr>
+            <td><b>${frappe.utils.escape_html(a.name)}</b></td>
+            <td>${frappe.utils.escape_html(a.version || "-")}</td>
+            <td style="font-family:monospace;font-size:11px;">${frappe.utils.escape_html(a.commit || "-")}</td>
+            <td>${frappe.utils.escape_html(a.branch || "-")}</td>
+            <td class="upeo-subtle">${frappe.utils.escape_html(a.commit_date || "-")}</td>
+          </tr>
+        `).join("");
+        $appsCard.html(`
+          <div class="upeo-glass upeo-card-pad upeo-fade-in upeo-section">
+            <div class="upeo-accent tables"></div>
+            <div class="upeo-header">
+              <div class="upeo-title">Installed Apps</div>
+              <div class="upeo-badge">${apps.length} apps</div>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-bordered upeo-table">
+                <thead><tr><th>App</th><th>Version</th><th>Commit</th><th>Branch</th><th>Commit date</th></tr></thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>
+          </div>
+        `);
+      },
+      error() { $appsCard.html(""); },
+    });
+  }
+
+  // 7.3: Patch history
+  function renderPatchCard() {
+    frappe.call({
+      method: "f_watcher.api.apps.patch_history",
+      args: { limit: 25 },
+      callback(r) {
+        const patches = r.message || [];
+        if (!patches.length) { $patchCard.html(""); return; }
+        const rows = patches.map(p => `
+          <tr>
+            <td style="font-family:monospace;font-size:11px;word-break:break-all;">
+              ${frappe.utils.escape_html(p.patch || "")}
+            </td>
+            <td class="upeo-subtle" style="white-space:nowrap;">${prettyTime(p.creation)}</td>
+          </tr>
+        `).join("");
+        $patchCard.html(`
+          <div class="upeo-glass upeo-card-pad upeo-fade-in upeo-section">
+            <div class="upeo-accent audit"></div>
+            <div class="upeo-header">
+              <div class="upeo-title">Patch History</div>
+              <div class="upeo-badge">Last ${patches.length}</div>
+            </div>
+            <div class="table-responsive" style="max-height:260px;overflow-y:auto;">
+              <table class="table table-bordered upeo-table">
+                <thead><tr><th>Patch</th><th>Run at</th></tr></thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>
+          </div>
+        `);
+      },
+      error() { $patchCard.html(""); },
+    });
+  }
+
+  // 7.5: Customization Audit
+  function renderCustomCard() {
+    frappe.call({
+      method: "f_watcher.api.customizations.audit",
+      callback(r) {
+        const d = r.message || {};
+        const cfRows = (d.custom_fields || []).slice(0, 10).map(f => `
+          <tr>
+            <td style="font-size:11px;">${frappe.utils.escape_html(f.dt || "")}</td>
+            <td style="font-size:11px;">${frappe.utils.escape_html(f.fieldname || "")}</td>
+            <td><span class="upeo-badge">${frappe.utils.escape_html(f.fieldtype || "")}</span></td>
+            <td class="upeo-subtle">${frappe.utils.escape_html(f.modified_by || "")}</td>
+          </tr>
+        `).join("") || `<tr><td colspan="4" class="upeo-muted">None</td></tr>`;
+
+        $customCard.html(`
+          <div class="upeo-glass upeo-card-pad upeo-fade-in upeo-section">
+            <div class="upeo-accent tables"></div>
+            <div class="upeo-header">
+              <div class="upeo-title">Customization Audit</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <span class="upeo-badge">${d.custom_fields_count || 0} custom fields</span>
+                <span class="upeo-badge">${(d.client_scripts || []).length} client scripts</span>
+                <span class="upeo-badge">${(d.server_scripts || []).length} server scripts</span>
+                <span class="upeo-badge">${d.property_setters_count || 0} property setters</span>
+              </div>
+            </div>
+            <div class="upeo-subtle" style="margin-bottom:8px;">Most recently modified custom fields</div>
+            <div class="table-responsive">
+              <table class="table table-bordered upeo-table">
+                <thead><tr><th>DocType</th><th>Field</th><th>Type</th><th>Modified by</th></tr></thead>
+                <tbody>${cfRows}</tbody>
+              </table>
+            </div>
+          </div>
+        `);
+      },
+      error() { $customCard.html(""); },
+    });
+  }
+
+  // 7.8: Scheduler timeline
+  function renderSchedulerCard() {
+    frappe.call({
+      method: "f_watcher.actions.queue.scheduler_timeline",
+      args: { hours: 24 },
+      callback(r) {
+        const rows = r.message || [];
+        if (!rows.length) { $schedulerCard.html(""); return; }
+        const trs = rows.slice(0, 30).map(j => {
+          const dot = j.status === "Complete" ? "green" : j.status === "Failed" ? "red" : "yellow";
+          return `<tr>
+            <td style="font-size:11px;word-break:break-all;">${frappe.utils.escape_html(j.scheduled_job_type || "")}</td>
+            <td><span class="upeo-pill" style="padding:2px 8px;">
+              <span class="upeo-dot ${dot}"></span>${frappe.utils.escape_html(j.status || "")}
+            </span></td>
+            <td class="upeo-subtle">${prettyTime(j.creation)}</td>
+          </tr>`;
+        }).join("");
+        $schedulerCard.html(`
+          <div class="upeo-glass upeo-card-pad upeo-fade-in upeo-section">
+            <div class="upeo-accent health"></div>
+            <div class="upeo-header">
+              <div class="upeo-title">Scheduler Timeline (last 24 h)</div>
+              <div class="upeo-badge">${rows.length} runs</div>
+            </div>
+            <div class="table-responsive" style="max-height:300px;overflow-y:auto;">
+              <table class="table table-bordered upeo-table">
+                <thead><tr><th>Job</th><th>Status</th><th>Ran at</th></tr></thead>
+                <tbody>${trs}</tbody>
+              </table>
+            </div>
+          </div>
+        `);
+      },
+      error() { $schedulerCard.html(""); },
+    });
+  }
+
   // 6.9: SSL expiry card
   function renderSSLCard() {
     frappe.call({
@@ -1763,6 +1917,10 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
   let cacheTimer = null;
   let sessionsTimer = null;
   let sslTimer = null;
+  let appsTimer = null;
+  let patchTimer = null;
+  let customTimer = null;
+  let schedulerTimer = null;
 
   // Phase 5: auxiliary state — one cycle behind, that's fine
   let currentDeltas   = null;
@@ -1897,6 +2055,26 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
     renderSSLCard();
     sslTimer = setInterval(renderSSLCard, 300000);
 
+    // Apps card — load once, refresh every 5 minutes
+    if (appsTimer) clearInterval(appsTimer);
+    renderAppsCard();
+    appsTimer = setInterval(renderAppsCard, 300000);
+
+    // Patch history — load once, refresh every 5 minutes
+    if (patchTimer) clearInterval(patchTimer);
+    renderPatchCard();
+    patchTimer = setInterval(renderPatchCard, 300000);
+
+    // Customizations audit — load once, refresh every 5 minutes
+    if (customTimer) clearInterval(customTimer);
+    renderCustomCard();
+    customTimer = setInterval(renderCustomCard, 300000);
+
+    // Scheduler timeline — refresh every 60s
+    if (schedulerTimer) clearInterval(schedulerTimer);
+    renderSchedulerCard();
+    schedulerTimer = setInterval(renderSchedulerCard, 60000);
+
     // Charts load once on start
     fetchHistory();
 
@@ -1911,6 +2089,10 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
     if (cacheTimer) clearInterval(cacheTimer);
     if (sessionsTimer) clearInterval(sessionsTimer);
     if (sslTimer) clearInterval(sslTimer);
+    if (appsTimer) clearInterval(appsTimer);
+    if (patchTimer) clearInterval(patchTimer);
+    if (customTimer) clearInterval(customTimer);
+    if (schedulerTimer) clearInterval(schedulerTimer);
     hideTip();
   });
 

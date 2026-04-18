@@ -181,6 +181,55 @@ Last seen: ${r.last_seen || '-'}</div>
 
     $filters.find("#fwqe-search").on("click", fetchStats);
 
+    // Slow HTTP Requests section (from tabMonitor)
+    const $slowReqs = $(`<div style="margin-top:20px;"></div>`).appendTo($body);
+
+    function renderSlowRequests(rows) {
+        if (!rows || !rows.length) {
+            $slowReqs.html(`
+                <div class="fwqe-glass fwqe-subtle" style="text-align:center;padding:16px;">
+                    No slow HTTP requests found in the last 24 hours.
+                </div>
+            `);
+            return;
+        }
+        const trs = rows.map(r => {
+            const maxMs = (r.max_duration_us / 1000).toFixed(0);
+            const avgMs = (r.avg_duration_us / 1000).toFixed(0);
+            return `
+                <tr>
+                    <td style="word-break:break-all;max-width:340px;">${frappe.utils.escape_html(r.path || "")}</td>
+                    <td>${frappe.utils.escape_html(r.request_method || "")}</td>
+                    <td style="text-align:right;">${maxMs}</td>
+                    <td style="text-align:right;">${avgMs}</td>
+                    <td style="text-align:right;">${r.count}</td>
+                    <td class="fwqe-subtle">${(r.last_seen || "").slice(0, 16)}</td>
+                </tr>`;
+        }).join("");
+        $slowReqs.html(`
+            <div class="fwqe-glass">
+                <div class="fwqe-title">Slow HTTP Requests <span class="fwqe-subtle">(last 24 h, &gt;500 ms)</span></div>
+                <table class="table fwqe-table" style="margin:0;">
+                    <thead><tr>
+                        <th>Path</th><th>Method</th>
+                        <th style="text-align:right;">Worst (ms)</th>
+                        <th style="text-align:right;">Avg (ms)</th>
+                        <th style="text-align:right;">Count</th>
+                        <th>Last Seen</th>
+                    </tr></thead>
+                    <tbody>${trs}</tbody>
+                </table>
+            </div>
+        `);
+    }
+
+    frappe.call({
+        method: "f_watcher.api.apps.slow_requests",
+        args: { hours: 24, limit: 50 },
+        callback(r) { renderSlowRequests(r.message || []); },
+        error() { $slowReqs.html(""); },
+    });
+
     // Initial load
     fetchStats();
 };
