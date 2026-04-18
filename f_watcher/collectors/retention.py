@@ -11,6 +11,7 @@ RETENTION_DAYS = {
     "F Watcher DB Table Storage": 90,
     "F Watcher Alert Log": 90,
     "F Watcher Action Audit": 180,
+    "F Watcher Uptime Record": 90,
 }
 
 def purge():

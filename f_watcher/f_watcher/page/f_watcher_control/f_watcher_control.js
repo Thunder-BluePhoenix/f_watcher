@@ -281,6 +281,7 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
   const $alertRulesPanel = $(`<div style="margin-top:12px;"></div>`).appendTo($body);
   const $queuesPanel     = $(`<div style="margin-top:12px;"></div>`).appendTo($body);
   const $audit           = $(`<div style="margin-top:12px;"></div>`).appendTo($body);
+  const $errorPatterns   = $(`<div style="margin-top:12px;"></div>`).appendTo($body);
 
   // One premium tooltip element reused for all tips
   let $tip = $("#upeo-tooltip");
@@ -397,6 +398,15 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
     const n = Number(x);
     if (Number.isNaN(n)) return null;
     return Math.max(0, Math.min(100, n));
+  }
+
+  function deltaArrow(val) {
+    if (val == null) return "";
+    const n = Number(val);
+    if (Number.isNaN(n) || n === 0) return "";
+    const up = n > 0;
+    const color = up ? "#ef4444" : "#10b981";
+    return ` <span style="font-size:13px;color:${color};font-weight:700;">${up ? "↑" : "↓"}${Math.abs(n).toFixed(1)}</span>`;
   }
 
   function healthLevel(sys) {
@@ -758,6 +768,15 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
                 <span class="upeo-dot ${scoreDot}"></span>
                 <span>Health Score: <b>${scoreLabel}</b>/100</span>
               </div>
+              ${(function() {
+                const u = currentUptime;
+                if (!u || u.uptime_pct == null) return "";
+                const dot = u.uptime_pct >= 99.9 ? "green" : u.uptime_pct >= 99 ? "yellow" : "red";
+                return `<div class="upeo-pill" title="Uptime over last 24 hours (${u.total_checks} checks)">
+                  <span class="upeo-dot ${dot}"></span>
+                  <span>Uptime: <b>${u.uptime_pct}%</b></span>
+                </div>`;
+              })()}
             </div>
             <div class="upeo-subtle" style="margin-top:8px;">${h.msg}</div>
             <div class="upeo-subtle" style="margin-top:6px;">Background tasks: ${frappe.utils.escape_html(qSummary)}</div>
@@ -774,7 +793,7 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
 
         <div class="row">
           <div class="col-sm-3">
-            <div class="upeo-kpi">${sys ? `${Number(sys.cpu_percent).toFixed(0)}%` : "-"}</div>
+            <div class="upeo-kpi">${sys ? `${Number(sys.cpu_percent).toFixed(0)}%${deltaArrow(currentDeltas?.cpu)}` : "-"}</div>
             <div class="upeo-kpi-label">
               <span>CPU</span>
               <span class="upeo-tip-btn" data-upeo-tip="cpu">i</span>
@@ -782,7 +801,7 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
           </div>
 
           <div class="col-sm-3">
-            <div class="upeo-kpi">${sys ? `${Number(sys.ram_percent).toFixed(0)}%` : "-"}</div>
+            <div class="upeo-kpi">${sys ? `${Number(sys.ram_percent).toFixed(0)}%${deltaArrow(currentDeltas?.ram)}` : "-"}</div>
             <div class="upeo-kpi-label">
               <span>RAM</span>
               <span class="upeo-tip-btn" data-upeo-tip="ram">i</span>
@@ -790,11 +809,16 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
           </div>
 
           <div class="col-sm-3">
-            <div class="upeo-kpi">${sys ? `${Number(sys.disk_percent).toFixed(0)}%` : "-"}</div>
+            <div class="upeo-kpi">${sys ? `${Number(sys.disk_percent).toFixed(0)}%${deltaArrow(currentDeltas?.disk)}` : "-"}</div>
             <div class="upeo-kpi-label">
               <span>Disk</span>
               <span class="upeo-tip-btn" data-upeo-tip="disk">i</span>
             </div>
+            ${(function() {
+              const f = currentForecast;
+              if (!f || !f.days_until_full) return "";
+              return `<div class="upeo-subtle" style="font-size:11px;margin-top:3px;">full in ~${f.days_until_full}d</div>`;
+            })()}
           </div>
 
           <div class="col-sm-3">
@@ -1044,7 +1068,10 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
         <div class="upeo-accent tables"></div>
         <div class="upeo-header">
           <div class="upeo-title">Metric History</div>
-          <div style="display:flex;gap:6px;" id="upeo-range-btns">${rangeHtml}</div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <div style="display:flex;gap:6px;" id="upeo-range-btns">${rangeHtml}</div>
+            <button class="btn btn-default btn-sm upeo-btn" id="upeo-export-csv" title="Export system metrics as CSV">↓ CSV</button>
+          </div>
         </div>
         <div id="upeo-cpu-chart" style="margin-top:8px;"></div>
         <div id="upeo-db-chart" style="margin-top:8px;"></div>
@@ -1094,6 +1121,33 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
     $charts.find("#upeo-range-btns").find("[data-hours]").off("click").on("click", function() {
       currentHours = parseInt($(this).data("hours"));
       fetchHistory();
+    });
+
+    // CSV export
+    $charts.find("#upeo-export-csv").off("click").on("click", function() {
+      const $btn = $(this);
+      $btn.prop("disabled", true).text("Exporting…");
+      frappe.call({
+        method: "f_watcher.api.export.system_metrics_csv",
+        args: { hours: currentHours },
+        callback(r) {
+          $btn.prop("disabled", false).text("↓ CSV");
+          if (!r.message) return;
+          const blob = new Blob([r.message], { type: "text/csv" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `system_metrics_${currentHours}h.csv`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        },
+        error() {
+          $btn.prop("disabled", false).text("↓ CSV");
+          showToast("error", "Export failed. Check permissions.");
+        },
+      });
     });
   }
 
@@ -1420,6 +1474,53 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
     });
   }
 
+  // 5.8: Error patterns panel
+  function renderErrorPatterns() {
+    frappe.call({
+      method: "f_watcher.dashboards.metrics.error_patterns",
+      args: { hours: 24, limit: 15 },
+      callback(r) {
+        const rows = r.message || [];
+        if (!rows.length) {
+          $errorPatterns.html("");
+          return;
+        }
+        const trs = rows.map(e => `
+          <tr>
+            <td style="font-family:monospace;font-size:11px;max-width:480px;word-break:break-word;">
+              ${frappe.utils.escape_html(e.snippet || "")}
+            </td>
+            <td style="text-align:right;"><span class="upeo-badge">${e.count}</span></td>
+            <td class="upeo-subtle">${prettyTime(e.last_seen)}</td>
+            <td style="font-size:11px;">${frappe.utils.escape_html(e.method || "-")}</td>
+          </tr>
+        `).join("");
+
+        $errorPatterns.html(`
+          <div class="upeo-glass upeo-card-pad upeo-fade-in upeo-section">
+            <div class="upeo-accent audit"></div>
+            <div class="upeo-header">
+              <div>
+                <div class="upeo-title">Error Patterns (last 24 h)</div>
+                <div class="upeo-subtle">Grouped by error prefix — most frequent first</div>
+              </div>
+              <div class="upeo-badge">${rows.length} patterns</div>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-bordered upeo-table">
+                <thead><tr>
+                  <th>Error snippet</th><th style="text-align:right;">Count</th>
+                  <th>Last seen</th><th>Method</th>
+                </tr></thead>
+                <tbody>${trs}</tbody>
+              </table>
+            </div>
+          </div>
+        `);
+      },
+    });
+  }
+
   // -----------------------------
   // Action bindings
   // -----------------------------
@@ -1539,6 +1640,11 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
   let maintenanceTimer = null;
   let cacheTimer = null;
 
+  // Phase 5: auxiliary state — one cycle behind, that's fine
+  let currentDeltas   = null;
+  let currentForecast = null;
+  let currentUptime   = null;
+
   function fetchHealthMap() {
     frappe.call({
       method: "f_watcher.api.health.check",
@@ -1600,6 +1706,22 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
     const args = {};
     if (currentSite) args.site = currentSite;
 
+    // Fire auxiliary state fetches in parallel — used from NEXT render cycle (lag is fine)
+    frappe.call({
+      method: "f_watcher.dashboards.metrics.compare_periods",
+      args: { hours: 24, ...(currentSite ? { site: currentSite } : {}) },
+      callback(r) { currentDeltas = (r.message || {}).delta || null; },
+    });
+    frappe.call({
+      method: "f_watcher.dashboards.metrics.disk_forecast",
+      callback(r) { currentForecast = r.message || null; },
+    });
+    frappe.call({
+      method: "f_watcher.dashboards.metrics.uptime_summary",
+      args: { ...(currentSite ? { site: currentSite } : {}) },
+      callback(r) { currentUptime = r.message || null; },
+    });
+
     frappe.call({
       method: "f_watcher.dashboards.metrics.latest",
       args,
@@ -1614,6 +1736,7 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
         });
         renderAlertRules();
         fetchCollectorStatus();
+        renderErrorPatterns();
       },
       error() {
         showToast("error", "Failed to load metrics. Check server logs.");

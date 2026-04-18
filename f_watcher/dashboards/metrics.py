@@ -1,5 +1,6 @@
 from __future__ import annotations
 import frappe
+from frappe.utils import add_to_date, now_datetime
 
 
 @frappe.whitelist()
@@ -203,3 +204,131 @@ def compare():
         )
         result[s] = row[0] if row else None
     return result
+
+
+@frappe.whitelist()
+def uptime_summary(hours: int = 24, site: str = None):
+    since = add_to_date(None, hours=-int(hours))
+    filters = {"timestamp": [">=", since]}
+    if site:
+        filters["site"] = site
+    rows = frappe.db.get_all(
+        "F Watcher Uptime Record",
+        filters=filters,
+        fields=["status"],
+    )
+    total = len(rows)
+    if not total:
+        return {"uptime_pct": None, "total_checks": 0, "status": "no_data"}
+    up_count = sum(1 for r in rows if r.status == "up")
+    return {
+        "uptime_pct": round(up_count / total * 100, 2),
+        "total_checks": total,
+        "status": "ok",
+    }
+
+
+@frappe.whitelist()
+def compare_periods(hours: int = 24, site: str = None):
+    hours = int(hours)
+    now_dt = now_datetime()
+    current_start = add_to_date(now_dt, hours=-hours)
+    prior_start = add_to_date(now_dt, hours=-(hours * 2))
+    site_clause = "AND site = %(site)s" if site else ""
+
+    def period_avg(start, end):
+        row = frappe.db.sql(f"""
+            SELECT AVG(cpu_percent) AS cpu,
+                   AVG(ram_percent) AS ram,
+                   AVG(disk_percent) AS disk
+            FROM `tabF Watcher System Metric`
+            WHERE `timestamp` BETWEEN %(start)s AND %(end)s {site_clause}
+        """, {"start": start, "end": end, "site": site}, as_dict=True)
+        return row[0] if row else {}
+
+    current = period_avg(current_start, now_dt)
+    prior = period_avg(prior_start, current_start)
+
+    def delta(cur, prv):
+        if cur is None or prv is None:
+            return None
+        return round(float(cur) - float(prv), 1)
+
+    return {
+        "current": current,
+        "prior": prior,
+        "delta": {
+            "cpu":  delta(current.get("cpu"),  prior.get("cpu")),
+            "ram":  delta(current.get("ram"),  prior.get("ram")),
+            "disk": delta(current.get("disk"), prior.get("disk")),
+        },
+    }
+
+
+@frappe.whitelist()
+def error_patterns(hours: int = 24, limit: int = 20):
+    since = add_to_date(None, hours=-int(hours))
+    return frappe.db.sql("""
+        SELECT
+            SUBSTRING(error, 1, 120) AS snippet,
+            COUNT(*)                 AS count,
+            MAX(creation)            AS last_seen,
+            method
+        FROM `tabError Log`
+        WHERE creation >= %(since)s
+        GROUP BY SUBSTRING(error, 1, 120), method
+        ORDER BY count DESC
+        LIMIT %(limit)s
+    """, {"since": since, "limit": int(limit)}, as_dict=True)
+
+
+@frappe.whitelist()
+def disk_forecast(days: int = 7):
+    since = add_to_date(None, days=-int(days))
+    rows = frappe.db.sql("""
+        SELECT UNIX_TIMESTAMP(`timestamp`) AS ts, total_mb
+        FROM `tabF Watcher DB Storage Snapshot`
+        WHERE `timestamp` >= %(since)s
+        ORDER BY `timestamp` ASC
+    """, {"since": since})
+
+    if len(rows) < 5:
+        return {"status": "insufficient_data", "days_until_full": None, "current_mb": None}
+
+    xs = [float(r[0]) for r in rows]
+    ys = [float(r[1]) for r in rows]
+    n = len(xs)
+    x_mean = sum(xs) / n
+    y_mean = sum(ys) / n
+
+    slope_num = sum((x - x_mean) * (y - y_mean) for x, y in zip(xs, ys))
+    slope_den = sum((x - x_mean) ** 2 for x in xs)
+
+    if slope_den == 0 or slope_num <= 0:
+        return {"status": "no_growth", "days_until_full": None, "current_mb": round(ys[-1], 0)}
+
+    slope_per_day = (slope_num / slope_den) * 86400
+    current_mb = ys[-1]
+
+    sys_row = frappe.db.get_all(
+        "F Watcher System Metric",
+        fields=["disk_percent"],
+        order_by="timestamp desc",
+        limit=1,
+    )
+    days_until_full = None
+    if sys_row and sys_row[0].disk_percent:
+        disk_pct = float(sys_row[0].disk_percent)
+        if disk_pct > 0 and slope_per_day > 0:
+            total_disk_mb = current_mb / (disk_pct / 100)
+            free_mb = total_disk_mb - current_mb
+            raw = free_mb / slope_per_day
+            if 0 < raw < 9999:
+                days_until_full = int(raw)
+
+    return {
+        "status": "ok",
+        "current_mb": round(current_mb, 0),
+        "growth_mb_per_day": round(slope_per_day, 1),
+        "days_until_full": days_until_full,
+    }

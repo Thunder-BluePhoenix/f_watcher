@@ -162,6 +162,7 @@ scheduler_events = {
             "f_watcher.collectors.redis_cache.collect",
             "f_watcher.collectors.apm.collect",
             "f_watcher.collectors.integration.collect",
+            "f_watcher.collectors.uptime.collect",
         ],
         "*/15 * * * *": [
             "f_watcher.collectors.security.collect",
@@ -177,6 +178,9 @@ scheduler_events = {
         ],
         "0 8 * * *": [
             "f_watcher.collectors.digest.send_daily_digest",
+        ],
+        "0 8 * * 1": [
+            "f_watcher.collectors.weekly_report.send_weekly_report",
         ],
     }
 }

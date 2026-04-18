@@ -1,7 +1,10 @@
+import datetime
 from unittest.mock import patch, MagicMock
 import frappe
 import unittest
 from f_watcher.collectors import system
+
+_FIXED_NOW = datetime.datetime(2026, 1, 1, 0, 0, 0)
 
 
 class TestSystemCollector(unittest.TestCase):
@@ -30,7 +33,8 @@ class TestSystemCollector(unittest.TestCase):
              patch("psutil.cpu_percent", return_value=20.0), \
              patch("socket.gethostname", return_value="test-host"), \
              patch("frappe.get_doc", side_effect=fake_get_doc), \
-             patch("frappe.local", MagicMock(site="test.localhost")):
+             patch("frappe.local", MagicMock(site="test.localhost")), \
+             patch("f_watcher.collectors.system.now_datetime", return_value=_FIXED_NOW):
             system.collect()
 
         self.assertEqual(len(inserted), 1)
@@ -54,7 +58,8 @@ class TestSystemCollector(unittest.TestCase):
              patch("psutil.cpu_percent", return_value=75), \
              patch("socket.gethostname", return_value="h"), \
              patch("frappe.get_doc", side_effect=fake_get_doc), \
-             patch("frappe.local", MagicMock(site="x")):
+             patch("frappe.local", MagicMock(site="x")), \
+             patch("f_watcher.collectors.system.now_datetime", return_value=_FIXED_NOW):
             system.collect()
 
         self.assertIsInstance(inserted[0]["cpu_percent"], float)

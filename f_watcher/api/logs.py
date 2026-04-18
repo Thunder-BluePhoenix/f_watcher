@@ -22,7 +22,7 @@ def tail_log(filename="frappe.log", lines=100):
     cache_key = f"fw_tail_ratelimit_{frappe.session.user}"
     if frappe.cache().get(cache_key):
         frappe.throw("Too many requests. Wait a moment.", frappe.RateLimitExceededError)
-    frappe.cache().set(cache_key, 1, expires_in_sec=3)
+    frappe.cache().set(cache_key, 1, ex=3)
 
     log_path = os.path.join(get_bench_path(), "logs", filename)
     if not os.path.exists(log_path):

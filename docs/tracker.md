@@ -168,17 +168,17 @@
 
 | Task | Status |
 |------|--------|
-| `api/export.py` — `system_metrics_csv()` | [ ] |
-| Export CSV buttons in Control Center | [ ] |
-| `F Watcher Uptime Record` DocType | [ ] |
-| `collectors/uptime.py` — every 5 min | [ ] |
-| `uptime_summary()` API + uptime % badge in header | [ ] |
-| `compare_periods()` endpoint — this vs prior period | [ ] |
-| Delta arrows (↑/↓) next to KPI values | [ ] |
-| `error_patterns()` API + Error Patterns table | [ ] |
-| `collectors/weekly_report.py` — Monday 08:00 | [ ] |
-| Register weekly report in `hooks.py` | [ ] |
-| `disk_forecast()` API + "full in ~N days" in disk KPI | [ ] |
+| `api/export.py` — `system_metrics_csv()` | [x] |
+| Export CSV buttons in Control Center | [x] |
+| `F Watcher Uptime Record` DocType | [x] |
+| `collectors/uptime.py` — every 5 min | [x] |
+| `uptime_summary()` API + uptime % badge in header | [x] |
+| `compare_periods()` endpoint — this vs prior period | [x] |
+| Delta arrows (↑/↓) next to KPI values | [x] |
+| `error_patterns()` API + Error Patterns table | [x] |
+| `collectors/weekly_report.py` — Monday 08:00 | [x] |
+| Register weekly report in `hooks.py` | [x] |
+| `disk_forecast()` API + "full in ~N days" in disk KPI | [x] |
 
 ---
 
@@ -228,10 +228,10 @@
 | Phase 2 | Visibility & Usability | 20 | 20 | 0 |
 | Phase 3 | Intelligence & Advanced Monitoring | 17 | 17 | 0 |
 | Phase 4 | Operational Control & Automation | 12 | 12 | 0 |
-| Phase 5 | Reporting & Analytics | 11 | 0 | 11 |
+| Phase 5 | Reporting & Analytics | 11 | 11 | 0 |
 | Phase 6 | Security & Compliance | 9 | 0 | 9 |
 | Phase 7 | Developer Tools & Framework Health | 11 | 0 | 11 |
-| **Total** | | **114** | **83** | **31** |
+| **Total** | | **114** | **94** | **20** |
 
 ---
 
@@ -261,3 +261,5 @@
 | 2026-04-18 | Phase 2 complete: charts, health map, alert badge, log streaming, digest, queue panel |
 | 2026-04-18 | Phase 3 complete: anomaly detection, query explorer, backup integrity, recommendations, multi-site, alerting intelligence |
 | 2026-04-18 | Phase 4 complete: maintenance windows, auto-remediation, queue inspector, cache card, custom cleanup rules |
+| 2026-04-19 | CI fix: patch is_maintenance_active + now_datetime in alerting/system tests; fix frappe.get_all mock target |
+| 2026-04-19 | Phase 5 complete: CSV export, uptime tracking, period deltas, disk forecast, error patterns, weekly report |

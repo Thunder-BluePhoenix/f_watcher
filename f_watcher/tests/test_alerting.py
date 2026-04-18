@@ -33,7 +33,7 @@ class TestEvaluateCondition(unittest.TestCase):
 class TestGetLatestMetric(unittest.TestCase):
     def test_system_metric_type(self):
         fake_row = {"cpu_percent": 30.0, "ram_percent": 50.0}
-        with patch("frappe.db.get_all", return_value=[fake_row]):
+        with patch("frappe.get_all", return_value=[fake_row]):
             result = get_latest_metric("System")
         self.assertEqual(result["cpu_percent"], 30.0)
 
@@ -42,7 +42,7 @@ class TestGetLatestMetric(unittest.TestCase):
         self.assertIsNone(result)
 
     def test_empty_db_returns_none(self):
-        with patch("frappe.db.get_all", return_value=[]):
+        with patch("frappe.get_all", return_value=[]):
             result = get_latest_metric("System")
         self.assertIsNone(result)
 
@@ -78,6 +78,7 @@ class TestEvaluateAndAlert(unittest.TestCase):
 
         with patch("frappe.get_all", return_value=[rule]), \
              patch("f_watcher.collectors.alerting.get_latest_metric", return_value=fake_metric), \
+             patch("f_watcher.collectors.alerting.is_maintenance_active", return_value=False), \
              patch("frappe.get_doc", side_effect=fake_get_doc), \
              patch("frappe.db.set_value"), \
              patch("frappe.db.commit"), \
@@ -99,7 +100,9 @@ class TestEvaluateAndAlert(unittest.TestCase):
 
         with patch("frappe.get_all", return_value=[rule]), \
              patch("f_watcher.collectors.alerting.get_latest_metric", return_value=fake_metric), \
-             patch("frappe.get_doc", side_effect=fake_get_doc):
+             patch("f_watcher.collectors.alerting.is_maintenance_active", return_value=False), \
+             patch("frappe.get_doc", side_effect=fake_get_doc), \
+             patch("frappe.db.get_value", return_value=None):
             from f_watcher.collectors.alerting import evaluate_and_alert
             evaluate_and_alert()
 
@@ -118,6 +121,7 @@ class TestEvaluateAndAlert(unittest.TestCase):
 
         with patch("frappe.get_all", return_value=[rule]), \
              patch("f_watcher.collectors.alerting.get_latest_metric", return_value=fake_metric), \
+             patch("f_watcher.collectors.alerting.is_maintenance_active", return_value=False), \
              patch("frappe.get_doc", side_effect=fake_get_doc):
             from f_watcher.collectors.alerting import evaluate_and_alert
             evaluate_and_alert()
