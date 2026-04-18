@@ -1,7 +1,10 @@
+import datetime
 from unittest.mock import patch, MagicMock, call
 import frappe
 import unittest
 from f_watcher.collectors.alerting import evaluate_condition, get_latest_metric
+
+_FIXED_NOW = datetime.datetime(2026, 1, 1, 0, 0, 0)
 
 
 class TestEvaluateCondition(unittest.TestCase):
@@ -71,7 +74,8 @@ class TestEvaluateAndAlert(unittest.TestCase):
         fake_metric = {"cpu_percent": 95.0}
         inserted_docs = []
 
-        def fake_get_doc(data):
+        def fake_get_doc(*args, **kwargs):
+            data = args[0] if args else kwargs
             doc = MagicMock()
             doc.insert = MagicMock(side_effect=lambda **kw: inserted_docs.append(data))
             return doc
@@ -79,6 +83,7 @@ class TestEvaluateAndAlert(unittest.TestCase):
         with patch("frappe.get_all", return_value=[rule]), \
              patch("f_watcher.collectors.alerting.get_latest_metric", return_value=fake_metric), \
              patch("f_watcher.collectors.alerting.is_maintenance_active", return_value=False), \
+             patch("f_watcher.collectors.alerting.now_datetime", return_value=_FIXED_NOW), \
              patch("frappe.get_doc", side_effect=fake_get_doc), \
              patch("frappe.db.set_value"), \
              patch("frappe.db.commit"), \
@@ -86,14 +91,18 @@ class TestEvaluateAndAlert(unittest.TestCase):
             from f_watcher.collectors.alerting import evaluate_and_alert
             evaluate_and_alert()
 
-        self.assertTrue(any(d.get("doctype") == "F Watcher Alert Log" for d in inserted_docs))
+        self.assertTrue(any(
+            (isinstance(d, dict) and d.get("doctype") == "F Watcher Alert Log")
+            for d in inserted_docs
+        ))
 
     def test_alert_skips_when_below_threshold(self):
         rule = self._make_rule()
         fake_metric = {"cpu_percent": 50.0}
         inserted_docs = []
 
-        def fake_get_doc(data):
+        def fake_get_doc(*args, **kwargs):
+            data = args[0] if args else kwargs
             doc = MagicMock()
             doc.insert = MagicMock(side_effect=lambda **kw: inserted_docs.append(data))
             return doc
@@ -101,20 +110,24 @@ class TestEvaluateAndAlert(unittest.TestCase):
         with patch("frappe.get_all", return_value=[rule]), \
              patch("f_watcher.collectors.alerting.get_latest_metric", return_value=fake_metric), \
              patch("f_watcher.collectors.alerting.is_maintenance_active", return_value=False), \
+             patch("f_watcher.collectors.alerting.now_datetime", return_value=_FIXED_NOW), \
              patch("frappe.get_doc", side_effect=fake_get_doc), \
              patch("frappe.db.get_value", return_value=None):
             from f_watcher.collectors.alerting import evaluate_and_alert
             evaluate_and_alert()
 
-        self.assertFalse(any(d.get("doctype") == "F Watcher Alert Log" for d in inserted_docs))
+        self.assertFalse(any(
+            (isinstance(d, dict) and d.get("doctype") == "F Watcher Alert Log")
+            for d in inserted_docs
+        ))
 
     def test_cooldown_prevents_repeat_alert(self):
-        from frappe.utils import add_to_date, now_datetime
-        rule = self._make_rule(last_triggered=add_to_date(now_datetime(), seconds=-60))
+        rule = self._make_rule(last_triggered=_FIXED_NOW - datetime.timedelta(seconds=60))
         fake_metric = {"cpu_percent": 95.0}
         inserted_docs = []
 
-        def fake_get_doc(data):
+        def fake_get_doc(*args, **kwargs):
+            data = args[0] if args else kwargs
             doc = MagicMock()
             doc.insert = MagicMock(side_effect=lambda **kw: inserted_docs.append(data))
             return doc
@@ -122,8 +135,14 @@ class TestEvaluateAndAlert(unittest.TestCase):
         with patch("frappe.get_all", return_value=[rule]), \
              patch("f_watcher.collectors.alerting.get_latest_metric", return_value=fake_metric), \
              patch("f_watcher.collectors.alerting.is_maintenance_active", return_value=False), \
+             patch("f_watcher.collectors.alerting.now_datetime", return_value=_FIXED_NOW), \
+             patch("f_watcher.collectors.alerting.time_diff_in_seconds",
+                   side_effect=lambda a, b: (a - b).total_seconds()), \
              patch("frappe.get_doc", side_effect=fake_get_doc):
             from f_watcher.collectors.alerting import evaluate_and_alert
             evaluate_and_alert()
 
-        self.assertFalse(any(d.get("doctype") == "F Watcher Alert Log" for d in inserted_docs))
+        self.assertFalse(any(
+            (isinstance(d, dict) and d.get("doctype") == "F Watcher Alert Log")
+            for d in inserted_docs
+        ))
