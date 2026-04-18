@@ -82,10 +82,30 @@ def execute(table: str, days: int, reason: str):
         _audit("cleanup", table, reason, "Failed", str(e))
         raise
 
+def _get_all_rules():
+    rules = dict(CLEANUP_RULES)
+    try:
+        custom = frappe.get_all(
+            "F Watcher Cleanup Rule",
+            filters={"is_active": 1},
+            fields=["table_name", "label", "default_days", "where_clause"],
+        )
+        for r in custom:
+            rules[r.table_name] = {
+                "label": r.label,
+                "default_days": r.default_days,
+                "where": r.where_clause,
+            }
+    except Exception:
+        pass
+    return rules
+
+
 def _rule(table: str):
-    if table not in CLEANUP_RULES:
+    all_rules = _get_all_rules()
+    if table not in all_rules:
         frappe.throw("Cleanup not allowed for this table.")
-    return CLEANUP_RULES[table]
+    return all_rules[table]
 
 def _audit(action: str, target: str, reason: str, result: str, details: str):
     frappe.get_doc({

@@ -1,10 +1,10 @@
 from unittest.mock import patch, MagicMock
 import frappe
-from frappe.tests.utils import FrappeTestCase
+import unittest
 from f_watcher.collectors import system
 
 
-class TestSystemCollector(FrappeTestCase):
+class TestSystemCollector(unittest.TestCase):
     def _fake_vm(self):
         vm = MagicMock()
         vm.percent = 55.0

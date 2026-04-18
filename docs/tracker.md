@@ -147,18 +147,18 @@
 
 | Task | Status |
 |------|--------|
-| `F Watcher Maintenance Window` DocType | [ ] |
-| `is_maintenance_active()` check in alerting engine | [ ] |
-| "Start maintenance" button + active banner in Control Center | [ ] |
-| `auto_remediate` + `remediation_action` fields on Alert Rule | [ ] |
-| `_run_remediation()` in alerting engine | [ ] |
-| `queue_jobs()` API endpoint — list/inspect jobs | [ ] |
-| Queue job inspector panel in Control Center | [ ] |
-| Per-job cancel + per-queue retry-all buttons | [ ] |
-| `api/cache.py` — `stats()` and `flush_cache()` | [ ] |
-| Cache card in Control Center right column | [ ] |
-| `F Watcher Cleanup Rule` DocType (custom rules) | [ ] |
-| Merge custom rules into `cleanup.py` | [ ] |
+| `F Watcher Maintenance Window` DocType | [x] |
+| `is_maintenance_active()` check in alerting engine | [x] |
+| "Start maintenance" button + active banner in Control Center | [x] |
+| `auto_remediate` + `remediation_action` fields on Alert Rule | [x] |
+| `_run_remediation()` in alerting engine | [x] |
+| `queue_jobs()` API endpoint — list/inspect jobs | [x] |
+| Queue job inspector panel in Control Center | [x] |
+| Per-job cancel + per-queue retry-all buttons | [x] |
+| `api/cache.py` — `stats()` and `flush_cache()` | [x] |
+| Cache card in Control Center right column | [x] |
+| `F Watcher Cleanup Rule` DocType (custom rules) | [x] |
+| Merge custom rules into `cleanup.py` | [x] |
 
 ---
 
@@ -227,11 +227,11 @@
 | Phase 1 | Stability & Correctness | 34 | 34 | 0 |
 | Phase 2 | Visibility & Usability | 20 | 20 | 0 |
 | Phase 3 | Intelligence & Advanced Monitoring | 17 | 17 | 0 |
-| Phase 4 | Operational Control & Automation | 12 | 0 | 12 |
+| Phase 4 | Operational Control & Automation | 12 | 12 | 0 |
 | Phase 5 | Reporting & Analytics | 11 | 0 | 11 |
 | Phase 6 | Security & Compliance | 9 | 0 | 9 |
 | Phase 7 | Developer Tools & Framework Health | 11 | 0 | 11 |
-| **Total** | | **114** | **71** | **43** |
+| **Total** | | **114** | **83** | **31** |
 
 ---
 
@@ -260,3 +260,4 @@
 | 2026-04-18 | Phase 1 complete: roles/permissions, retention collector, full test suite |
 | 2026-04-18 | Phase 2 complete: charts, health map, alert badge, log streaming, digest, queue panel |
 | 2026-04-18 | Phase 3 complete: anomaly detection, query explorer, backup integrity, recommendations, multi-site, alerting intelligence |
+| 2026-04-18 | Phase 4 complete: maintenance windows, auto-remediation, queue inspector, cache card, custom cleanup rules |

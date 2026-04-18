@@ -1,10 +1,10 @@
 from unittest.mock import patch, MagicMock
 import frappe
-from frappe.tests.utils import FrappeTestCase
+import unittest
 from f_watcher.actions import control
 
 
-class TestControlRun(FrappeTestCase):
+class TestControlRun(unittest.TestCase):
     def _mock_audit(self):
         return patch("f_watcher.actions.control._audit", return_value=None)
 
@@ -32,7 +32,7 @@ class TestControlRun(FrappeTestCase):
         self.assertEqual(args[3], "Success")
 
 
-class TestControlPermission(FrappeTestCase):
+class TestControlPermission(unittest.TestCase):
     def test_restart_workers_requires_operator(self):
         with patch("frappe.only_for") as mock_only_for, \
              patch("f_watcher.actions.control._run", return_value="Success"):

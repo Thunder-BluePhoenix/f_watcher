@@ -1,10 +1,10 @@
 from unittest.mock import patch, MagicMock
 import frappe
-from frappe.tests.utils import FrappeTestCase
+import unittest
 from f_watcher.actions.cleanup import preview, execute, _check_permission, CLEANUP_RULES
 
 
-class TestCleanupPermission(FrappeTestCase):
+class TestCleanupPermission(unittest.TestCase):
     def test_administrator_passes(self):
         with patch.object(frappe, "session", MagicMock(user="Administrator")):
             # Should not raise
@@ -27,7 +27,7 @@ class TestCleanupPermission(FrappeTestCase):
                     _check_permission()
 
 
-class TestCleanupPreview(FrappeTestCase):
+class TestCleanupPreview(unittest.TestCase):
     def _mock_permission(self):
         return patch("f_watcher.actions.cleanup._check_permission", return_value=None)
 
@@ -52,7 +52,7 @@ class TestCleanupPreview(FrappeTestCase):
                 preview("tabSomeRandomTable", days=30)
 
 
-class TestCleanupExecute(FrappeTestCase):
+class TestCleanupExecute(unittest.TestCase):
     def _mock_permission(self):
         return patch("f_watcher.actions.cleanup._check_permission", return_value=None)
 

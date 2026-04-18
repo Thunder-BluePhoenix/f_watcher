@@ -1,9 +1,8 @@
 # Copyright (c) 2026, Karani Geoffrey and Contributors
 # See license.txt
 
-# import frappe
-from frappe.tests.utils import FrappeTestCase
+import unittest
 
 
-class TestFWatcherDBStorageSnapshot(FrappeTestCase):
+class TestFWatcherDBStorageSnapshot(unittest.TestCase):
 	pass

@@ -3,7 +3,46 @@ import frappe
 from frappe.utils import now_datetime, time_diff_in_seconds
 
 
+def is_maintenance_active():
+    now = now_datetime()
+    return frappe.db.exists("F Watcher Maintenance Window", {
+        "starts_at": ["<=", now],
+        "ends_at":   [">=", now],
+    })
+
+
+def _run_remediation(action: str, rule):
+    try:
+        if action.startswith("retry_failed_jobs_"):
+            queue = action.replace("retry_failed_jobs_", "")
+            from f_watcher.actions.queue import retry_failed_jobs
+            retry_failed_jobs(queue_name=queue)
+        elif action == "clear_cache":
+            frappe.cache().flushdb()
+        _audit_remediation(rule, action, "Success")
+    except Exception as e:
+        _audit_remediation(rule, action, f"Failed: {e}")
+
+
+def _audit_remediation(rule, action, result):
+    frappe.get_doc({
+        "doctype": "F Watcher Action Audit",
+        "timestamp": now_datetime(),
+        "site": frappe.local.site,
+        "user": "Administrator",
+        "action": f"auto_remediation:{action}",
+        "target": rule.rule_name,
+        "reason": "Auto-remediation triggered by alert rule",
+        "result": result,
+        "details": f"Rule: {rule.name}",
+    }).insert(ignore_permissions=True)
+    frappe.db.commit()
+
+
 def evaluate_and_alert():
+    if is_maintenance_active():
+        return  # silently skip all alerts during maintenance
+
     rules = frappe.get_all("F Watcher Alert Rule", filters={"is_active": 1}, fields=["*"])
 
     for rule in rules:
@@ -69,6 +108,10 @@ def evaluate_and_alert():
 
                 frappe.db.set_value("F Watcher Alert Rule", rule.name, "last_triggered", now_datetime())
                 frappe.db.commit()
+
+                # 4.2: auto-remediation
+                if getattr(rule, "auto_remediate", 0) and getattr(rule, "remediation_action", None):
+                    _run_remediation(rule.remediation_action, rule)
 
             else:
                 # 3.8b: auto-resolve — insert Resolved record if last log was Triggered

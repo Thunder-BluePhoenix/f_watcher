@@ -18,7 +18,9 @@
   "alert_channel",
   "webhook_url",
   "email_address",
-  "last_triggered"
+  "last_triggered",
+  "auto_remediate",
+  "remediation_action"
  ],
  "fields": [
   {
@@ -97,6 +99,19 @@
    "fieldtype": "Datetime",
    "label": "Last Triggered",
    "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "auto_remediate",
+   "fieldtype": "Check",
+   "label": "Auto-Remediate on Alert"
+  },
+  {
+   "depends_on": "eval:doc.auto_remediate",
+   "fieldname": "remediation_action",
+   "fieldtype": "Select",
+   "label": "Remediation Action",
+   "options": "\nretry_failed_jobs_default\nretry_failed_jobs_short\nretry_failed_jobs_long\nclear_cache"
   }
  ],
  "grid_page_length": 50,

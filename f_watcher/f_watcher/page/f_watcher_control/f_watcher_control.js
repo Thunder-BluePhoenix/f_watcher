@@ -270,16 +270,17 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
   }
 
   // Layout containers
-  const $toast         = $(`<div class="upeo-toast"></div>`).appendTo($body);
-  const $health        = $(`<div></div>`).appendTo($body);
-  const $healthMap     = $(`<div style="margin-top:12px;"></div>`).appendTo($body);
-  const $charts        = $(`<div style="margin-top:12px;"></div>`).appendTo($body);
-  const $row           = $(`<div class="row" style="margin-top:12px;"></div>`).appendTo($body);
-  const $left          = $(`<div class="col-md-8"></div>`).appendTo($row);
-  const $right         = $(`<div class="col-md-4"></div>`).appendTo($row);
+  const $toast           = $(`<div class="upeo-toast"></div>`).appendTo($body);
+  const $maintenance     = $(`<div style="margin-bottom:8px;"></div>`).appendTo($body);
+  const $health          = $(`<div></div>`).appendTo($body);
+  const $healthMap       = $(`<div style="margin-top:12px;"></div>`).appendTo($body);
+  const $charts          = $(`<div style="margin-top:12px;"></div>`).appendTo($body);
+  const $row             = $(`<div class="row" style="margin-top:12px;"></div>`).appendTo($body);
+  const $left            = $(`<div class="col-md-8"></div>`).appendTo($row);
+  const $right           = $(`<div class="col-md-4"></div>`).appendTo($row);
   const $alertRulesPanel = $(`<div style="margin-top:12px;"></div>`).appendTo($body);
-  const $queuesPanel   = $(`<div style="margin-top:12px;"></div>`).appendTo($body);
-  const $audit         = $(`<div style="margin-top:12px;"></div>`).appendTo($body);
+  const $queuesPanel     = $(`<div style="margin-top:12px;"></div>`).appendTo($body);
+  const $audit           = $(`<div style="margin-top:12px;"></div>`).appendTo($body);
 
   // One premium tooltip element reused for all tips
   let $tip = $("#upeo-tooltip");
@@ -909,6 +910,11 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
         <button class="btn btn-primary btn-sm upeo-btn" id="upeo-restart-scheduler" style="width:100%;">Restart scheduler (automation)</button>
         <div class="upeo-subtle" style="margin-top:6px;">Use if scheduled jobs are not running.</div>
 
+        <div style="height:10px;"></div>
+
+        <button class="btn btn-default btn-sm upeo-btn" id="upeo-start-maintenance" style="width:100%;">Start Maintenance Window</button>
+        <div class="upeo-subtle" style="margin-top:6px;">Suppress alerts during planned changes.</div>
+
         <div class="upeo-divider"></div>
 
         <div class="upeo-subtle">
@@ -1185,23 +1191,37 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
 
     const cards = Object.values(byQueue).map(q => {
       const failedDot = q.failed_count > 0 ? "red" : "green";
+      const qSafe = frappe.utils.escape_html(q.queue_name);
       return `
         <div class="col-sm-4" style="margin-bottom:12px;">
           <div class="upeo-glass upeo-card-pad upeo-section" style="border-radius:14px;">
-            <div style="font-weight:850;">${frappe.utils.escape_html(q.queue_name)}</div>
+            <div style="font-weight:850;">${qSafe}</div>
             <div class="upeo-subtle" style="margin-top:4px;">Waiting: <b>${q.job_count || 0}</b></div>
             <div class="upeo-subtle">Workers: <b>${q.active_workers || 0}</b></div>
             <div style="display:flex;align-items:center;gap:6px;margin-top:6px;">
               <span class="upeo-dot ${failedDot}"></span>
               <span class="upeo-subtle">Failed: <b>${q.failed_count || 0}</b></span>
             </div>
+            <div style="display:flex;gap:6px;margin-top:8px;">
+              <button class="btn btn-default btn-xs upeo-btn upeo-view-jobs-btn"
+                      data-queue="${qSafe}" data-status="queued" style="flex:1;">
+                View queued
+              </button>
+              ${q.failed_count > 0 ? `
+                <button class="btn btn-warning btn-xs upeo-btn upeo-view-jobs-btn"
+                        data-queue="${qSafe}" data-status="failed" style="flex:1;">
+                  View failed
+                </button>
+              ` : ''}
+            </div>
             ${q.failed_count > 0 ? `
               <button class="btn btn-warning btn-sm upeo-btn upeo-retry-btn"
-                      data-queue="${frappe.utils.escape_html(q.queue_name)}"
-                      style="margin-top:8px;width:100%;">
+                      data-queue="${qSafe}"
+                      style="margin-top:6px;width:100%;">
                 Retry failed jobs
               </button>
             ` : ''}
+            <div id="upeo-jobs-${qSafe}" style="margin-top:4px;"></div>
           </div>
         </div>
       `;
@@ -1234,6 +1254,169 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
           },
         });
       });
+    });
+
+    $queuesPanel.find(".upeo-view-jobs-btn").off("click").on("click", function() {
+      const qName = $(this).data("queue");
+      const status = $(this).data("status");
+      const $panel = $queuesPanel.find(`#upeo-jobs-${qName}`);
+      if ($panel.is(":visible") && $panel.data("active-status") === status) {
+        $panel.empty().hide();
+      } else {
+        $panel.show().data("active-status", status);
+        renderJobInspector(qName, status);
+      }
+    });
+  }
+
+  // -----------------------------
+  // 4.1: Maintenance window
+  // -----------------------------
+  function checkMaintenance() {
+    frappe.call({
+      method: "f_watcher.api.maintenance.active_window",
+      callback(r) {
+        const win = r.message;
+        if (win) {
+          $maintenance.html(`
+            <div style="background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.4);
+                        border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:12px;">
+              <span class="upeo-dot yellow"></span>
+              <span style="font-weight:700;">Maintenance window active:</span>
+              <span>${frappe.utils.escape_html(win.title)}</span>
+              <span class="upeo-subtle">ends ${prettyTime(win.ends_at)}</span>
+              ${win.reason ? `<span class="upeo-subtle">· ${frappe.utils.escape_html(win.reason)}</span>` : ""}
+            </div>
+          `);
+        } else {
+          $maintenance.html("");
+        }
+      },
+    });
+  }
+
+  function startMaintenanceDialog() {
+    const d = new frappe.ui.Dialog({
+      title: "Start Maintenance Window",
+      fields: [
+        { fieldname: "title", fieldtype: "Data", label: "Title", reqd: 1,
+          default: "Planned maintenance" },
+        { fieldname: "duration_minutes", fieldtype: "Select", label: "Duration",
+          options: "15\n30\n60\n120\n240", default: "30" },
+        { fieldname: "reason", fieldtype: "Small Text", label: "Reason" },
+      ],
+      primary_action_label: "Start",
+      primary_action(values) {
+        d.hide();
+        frappe.call({
+          method: "f_watcher.api.maintenance.create_window",
+          args: { title: values.title, duration_minutes: values.duration_minutes, reason: values.reason || "" },
+          callback() {
+            showToast("ok", "Maintenance window started. Alerts suppressed.");
+            checkMaintenance();
+          },
+          error() { showToast("error", "Failed to start maintenance window."); },
+        });
+      },
+    });
+    d.show();
+  }
+
+  // 4.3: Queue job inspector
+  function renderJobInspector(queueName, status) {
+    frappe.call({
+      method: "f_watcher.actions.queue.queue_jobs",
+      args: { queue_name: queueName, status, limit: 20 },
+      callback(r) {
+        const jobs = r.message || [];
+        const $panel = $queuesPanel.find(`#upeo-jobs-${queueName}`);
+        if (!jobs.length) {
+          $panel.html(`<div class="upeo-subtle" style="padding:8px;">No ${status} jobs.</div>`);
+          return;
+        }
+        const rows = jobs.map(j => `
+          <tr>
+            <td style="font-family:monospace;font-size:11px;">${frappe.utils.escape_html(j.id.slice(0, 12))}…</td>
+            <td style="font-size:11px;">${frappe.utils.escape_html(j.func || j.description || "-")}</td>
+            <td class="upeo-subtle">${j.enqueued_at ? j.enqueued_at.slice(0, 16) : "-"}</td>
+            <td>
+              <button class="btn btn-danger btn-xs upeo-cancel-job"
+                      data-queue="${frappe.utils.escape_html(queueName)}"
+                      data-job="${frappe.utils.escape_html(j.id)}">✕</button>
+            </td>
+          </tr>
+        `).join("");
+        $panel.html(`
+          <table class="table table-bordered upeo-table" style="font-size:12px;margin-top:4px;">
+            <thead><tr><th>ID</th><th>Function</th><th>Enqueued</th><th></th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        `);
+        $panel.find(".upeo-cancel-job").off("click").on("click", function() {
+          const $btn = $(this);
+          frappe.call({
+            method: "f_watcher.actions.queue.cancel_job",
+            args: { queue_name: $btn.data("queue"), job_id: $btn.data("job") },
+            callback() { showToast("ok", "Job cancelled."); renderJobInspector(queueName, status); },
+            error() { showToast("error", "Failed to cancel job."); },
+          });
+        });
+      },
+    });
+  }
+
+  // 4.4: Cache card — rendered in $right
+  function renderCacheCard() {
+    frappe.call({
+      method: "f_watcher.api.cache.stats",
+      callback(r) {
+        const s = r.message || {};
+        const patternRows = (s.key_patterns || []).slice(0, 8).map(([k, c]) =>
+          `<tr><td style="font-size:11px;">${frappe.utils.escape_html(k)}</td>
+               <td style="text-align:right;font-size:11px;">${c}</td></tr>`
+        ).join("");
+
+        const html = `
+          <div id="upeo-cache-card" class="upeo-glass upeo-card-pad upeo-fade-in upeo-section" style="margin-top:12px;">
+            <div class="upeo-accent health"></div>
+            <div class="upeo-title">Redis Cache</div>
+            <div class="upeo-subtle" style="margin-top:6px;">
+              Memory: <b>${s.used_memory_human || "-"}</b> / ${s.maxmemory_human || "no limit"}
+            </div>
+            <div class="upeo-subtle">Hit ratio: <b>${s.hit_ratio != null ? s.hit_ratio + "%" : "-"}</b></div>
+            <div class="upeo-subtle">Total keys: <b>${s.total_keys || 0}</b></div>
+            ${patternRows ? `
+              <div class="upeo-divider" style="margin:8px 0;"></div>
+              <div class="upeo-subtle" style="margin-bottom:4px;">Top key prefixes</div>
+              <table class="table table-bordered upeo-table" style="margin:0;">
+                <tbody>${patternRows}</tbody>
+              </table>
+            ` : ""}
+            <div style="margin-top:10px;">
+              <button class="btn btn-warning btn-sm upeo-btn" id="upeo-flush-cache" style="width:100%;">
+                Flush cache
+              </button>
+            </div>
+          </div>
+        `;
+
+        const $existing = $right.find("#upeo-cache-card");
+        if ($existing.length) $existing.replaceWith(html);
+        else $right.append(html);
+
+        $right.find("#upeo-flush-cache").off("click").on("click", function() {
+          frappe.confirm("Flush the entire Redis cache? This may slow the next few requests.", () => {
+            frappe.call({
+              method: "f_watcher.api.cache.flush_cache",
+              callback() { showToast("ok", "Cache flushed."); renderCacheCard(); },
+              error() { showToast("error", "Flush failed. Check permissions."); },
+            });
+          });
+        });
+      },
+      error() {
+        // Cache card is non-critical — silently skip on error
+      },
     });
   }
 
@@ -1344,6 +1527,8 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
     });
 
     $("#upeo-refresh-tables").off("click").on("click", () => refreshBigTables());
+
+    $("#upeo-start-maintenance").off("click").on("click", () => startMaintenanceDialog());
   }
 
   // -----------------------------
@@ -1351,6 +1536,8 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
   // -----------------------------
   let f_watcherTimer = null;
   let healthMapTimer = null;
+  let maintenanceTimer = null;
+  let cacheTimer = null;
 
   function fetchHealthMap() {
     frappe.call({
@@ -1443,6 +1630,16 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
     fetchHealthMap();
     healthMapTimer = setInterval(fetchHealthMap, 30000);
 
+    // Maintenance window banner — every 60s
+    if (maintenanceTimer) clearInterval(maintenanceTimer);
+    checkMaintenance();
+    maintenanceTimer = setInterval(checkMaintenance, 60000);
+
+    // Cache card — every 60s
+    if (cacheTimer) clearInterval(cacheTimer);
+    renderCacheCard();
+    cacheTimer = setInterval(renderCacheCard, 60000);
+
     // Charts load once on start
     fetchHistory();
 
@@ -1453,6 +1650,8 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
   $(wrapper).on("remove", () => {
     if (f_watcherTimer) clearInterval(f_watcherTimer);
     if (healthMapTimer) clearInterval(healthMapTimer);
+    if (maintenanceTimer) clearInterval(maintenanceTimer);
+    if (cacheTimer) clearInterval(cacheTimer);
     hideTip();
   });
 

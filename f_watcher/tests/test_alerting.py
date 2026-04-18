@@ -1,10 +1,10 @@
 from unittest.mock import patch, MagicMock, call
 import frappe
-from frappe.tests.utils import FrappeTestCase
+import unittest
 from f_watcher.collectors.alerting import evaluate_condition, get_latest_metric
 
 
-class TestEvaluateCondition(FrappeTestCase):
+class TestEvaluateCondition(unittest.TestCase):
     def test_greater_than(self):
         self.assertTrue(evaluate_condition(90, ">", 80))
         self.assertFalse(evaluate_condition(70, ">", 80))
@@ -30,7 +30,7 @@ class TestEvaluateCondition(FrappeTestCase):
         self.assertFalse(evaluate_condition(100, "!=", 50))
 
 
-class TestGetLatestMetric(FrappeTestCase):
+class TestGetLatestMetric(unittest.TestCase):
     def test_system_metric_type(self):
         fake_row = {"cpu_percent": 30.0, "ram_percent": 50.0}
         with patch("frappe.db.get_all", return_value=[fake_row]):
@@ -47,7 +47,7 @@ class TestGetLatestMetric(FrappeTestCase):
         self.assertIsNone(result)
 
 
-class TestEvaluateAndAlert(FrappeTestCase):
+class TestEvaluateAndAlert(unittest.TestCase):
     def _make_rule(self, **overrides):
         base = {
             "name": "RULE-001",
@@ -61,6 +61,7 @@ class TestEvaluateAndAlert(FrappeTestCase):
             "webhook_url": None,
             "email_address": None,
             "last_triggered": None,
+            "cooldown_minutes": 15,
         }
         base.update(overrides)
         return MagicMock(**base)

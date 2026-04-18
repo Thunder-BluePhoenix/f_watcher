@@ -1,5 +1,5 @@
 from unittest.mock import patch, MagicMock
-from frappe.tests.utils import FrappeTestCase
+import unittest
 from f_watcher.dashboards import metrics
 
 
@@ -19,7 +19,7 @@ FAKE_QUEUES = [{"queue_name": "default", "job_count": 2, "failed_count": 0, "act
 FAKE_BIG_TABLES = [{"table_name": "tabError Log", "total_mb": 200, "rows_est": 50000}]
 
 
-class TestMetricsLatest(FrappeTestCase):
+class TestMetricsLatest(unittest.TestCase):
     def test_latest_returns_expected_keys(self):
         with patch("frappe.db.get_all") as mock_get_all, \
              patch("frappe.db.sql", return_value=FAKE_BIG_TABLES):
@@ -52,7 +52,7 @@ class TestMetricsLatest(FrappeTestCase):
         self.assertEqual(result["big_tables"], [])
 
 
-class TestMetricsAudit(FrappeTestCase):
+class TestMetricsAudit(unittest.TestCase):
     def test_audit_default_limit(self):
         with patch("frappe.db.get_all", return_value=[]) as mock:
             metrics.audit()
