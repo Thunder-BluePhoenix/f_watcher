@@ -18,11 +18,11 @@ def tail_log(filename="frappe.log", lines=100):
     if filename not in ALLOWED_LOGS:
         frappe.throw(f"Invalid log file. Allowed: {', '.join(ALLOWED_LOGS)}")
 
-    # 3.6: rate limit — max 1 call per 3 seconds per user
+    # rate limit — at most 1 call per second per user (prevents double-fire, not normal use)
     cache_key = f"fw_tail_ratelimit_{frappe.session.user}"
     if frappe.cache().get(cache_key):
-        frappe.throw("Too many requests. Wait a moment.", frappe.RateLimitExceededError)
-    frappe.cache().set(cache_key, 1, ex=3)
+        return ""
+    frappe.cache().set(cache_key, 1, ex=1)
 
     log_path = os.path.join(get_bench_path(), "logs", filename)
     if not os.path.exists(log_path):
