@@ -7,30 +7,63 @@ frappe.pages['f-watcher-log-viewer'].on_page_load = function(wrapper) {
 
     $(frappe.render_template('f_watcher_log_viewer', {})).appendTo(page.body);
 
-    // Scope all selectors to this page instance — avoids collisions when
-    // Frappe caches the page DOM and re-renders
-    const $body     = $(page.body);
-    const $selector = $body.find('#log_file_selector');
-    const $output   = $body.find('#log_output');
-    const $status   = $body.find('#log_status');
-    const $lines    = $body.find('#log_lines');
+    const $body       = $(page.body);
+    const $selector   = $body.find('#log_file_selector');
+    const $output     = $body.find('#log_output');
+    const $status     = $body.find('#log_status');
+    const $lines      = $body.find('#log_lines');
     const $refreshBtn = $body.find('#refresh_log_btn');
+    const $pauseBtn   = $body.find('#log_pause_btn');
+    const $copyBtn    = $body.find('#log_copy_btn');
+    const $downloadBtn= $body.find('#log_download_btn');
+    const $search     = $body.find('#log_search');
 
-    let pollTimer   = null;
-    let inFlight    = false;   // LV-06: prevent stacking concurrent requests
+    let pollTimer  = null;
+    let inFlight   = false;
+    let paused     = false;
+    let rawText    = '';   // last full text from server (used by search filter)
 
-    // LV-05: only auto-scroll when user is already at (or near) the bottom
+    // 2.4: realtime lines arrive here; append without a full re-fetch
+    frappe.realtime.on('fw_log_line', function(data) {
+        if (!data || !data.line) return;
+        rawText += '\n' + data.line;
+        applyFilter();
+        if (isAtBottom()) {
+            $output[0].scrollTop = $output[0].scrollHeight;
+        }
+        $status.text('Streaming · last line ' + frappe.datetime.now_time())
+               .removeClass('text-danger');
+    });
+
     function isAtBottom() {
         const el = $output[0];
         return el.scrollHeight - el.scrollTop - el.clientHeight < 60;
     }
 
+    // 2.6b: colorize severity keywords (XSS-safe — escape first, then add spans)
+    function colorize(raw) {
+        const escaped = frappe.utils.escape_html(raw);
+        return escaped
+            .replace(/^(.*\bCRITICAL\b.*)$/gm, '<span style="color:#ff4757;font-weight:bold;">$1</span>')
+            .replace(/^(.*\bERROR\b.*)$/gm,    '<span style="color:#ff6b6b;">$1</span>')
+            .replace(/^(.*\bWARNING\b.*)$/gm,  '<span style="color:#ffd93d;">$1</span>')
+            .replace(/^(.*\bINFO\b.*)$/gm,     '<span style="color:#7bed9f;">$1</span>');
+    }
+
+    // 2.6a: client-side filter — re-renders from rawText without a server call
+    function applyFilter() {
+        const term = ($search.val() || '').trim().toLowerCase();
+        const lines = rawText.split('\n');
+        const filtered = term ? lines.filter(l => l.toLowerCase().includes(term)) : lines;
+        $output.html(colorize(filtered.join('\n')));
+    }
+
     function fetch_logs() {
-        if (inFlight) return;  // skip if previous call still running
+        if (paused || inFlight) return;
         inFlight = true;
 
         const filename = $selector.val();
-        const lines    = Math.min(parseInt($lines.val()) || 200, 500); // LV-08: cap at 500
+        const lines    = Math.min(parseInt($lines.val()) || 200, 500);
         $status.text('Fetching ' + filename + '…').removeClass('text-danger');
 
         frappe.call({
@@ -41,20 +74,18 @@ frappe.pages['f-watcher-log-viewer'].on_page_load = function(wrapper) {
                 const wasAtBottom = isAtBottom();
 
                 if (r.message && typeof r.message === 'string') {
-                    $output.text(r.message);
+                    rawText = r.message;
+                    applyFilter();
                     if (wasAtBottom) {
-                        $output.scrollTop($output[0].scrollHeight);
+                        $output[0].scrollTop = $output[0].scrollHeight;
                     }
-                    $status
-                        .text('Live · last updated ' + frappe.datetime.now_time())
-                        .removeClass('text-danger');
+                    $status.text('Live · last updated ' + frappe.datetime.now_time())
+                           .removeClass('text-danger');
                 } else if (r.message && r.message.error) {
-                    $output.text('Error: ' + r.message.error);
-                    $status.text('Error reading log file.').addClass('text-danger');
+                    $status.text('Error: ' + r.message.error).addClass('text-danger');
                 }
-                schedulePoll();  // reschedule only after call finishes (LV-06)
+                schedulePoll();
             },
-            // LV-04: handle network/permission failures visibly
             error: function() {
                 inFlight = false;
                 $status.text('Failed to fetch log. Check permissions or server.').addClass('text-danger');
@@ -65,26 +96,34 @@ frappe.pages['f-watcher-log-viewer'].on_page_load = function(wrapper) {
 
     function schedulePoll() {
         if (pollTimer) clearTimeout(pollTimer);
-        pollTimer = setTimeout(fetch_logs, 4000);
-    }
-
-    function stopPoll() {
-        if (pollTimer) {
-            clearTimeout(pollTimer);
-            pollTimer = null;
+        if (!paused) {
+            pollTimer = setTimeout(fetch_logs, 4000);
         }
     }
 
-    // LV-03: .off() before .on() so handlers don't accumulate on re-render
+    function stopPoll() {
+        if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; }
+    }
+
+    // Start realtime stream (2.4)
+    function startStream() {
+        frappe.call({
+            method: 'f_watcher.api.log_stream.start_stream',
+            args: { filename: $selector.val() },
+        });
+    }
+
     $refreshBtn.off('click').on('click', function() {
         stopPoll();
         fetch_logs();
     });
 
     $selector.off('change').on('change', function() {
-        $output.text('Switching log file…');
+        rawText = '';
+        $output.html('Switching log file…');
         stopPoll();
         fetch_logs();
+        startStream();
     });
 
     $lines.off('change').on('change', function() {
@@ -92,16 +131,49 @@ frappe.pages['f-watcher-log-viewer'].on_page_load = function(wrapper) {
         fetch_logs();
     });
 
-    // LV-01: use Frappe's correct page hide event to stop polling on navigation
+    // 2.6a: filter on search input
+    $search.off('input').on('input', applyFilter);
+
+    // 2.6c: pause / resume
+    $pauseBtn.off('click').on('click', function() {
+        paused = !paused;
+        $pauseBtn.text(paused ? '▶ Resume' : '⏸ Pause');
+        if (!paused) {
+            fetch_logs();
+        } else {
+            stopPoll();
+            $status.text('Paused').removeClass('text-danger');
+        }
+    });
+
+    // 2.6d: copy to clipboard
+    $copyBtn.off('click').on('click', function() {
+        navigator.clipboard.writeText(rawText).then(function() {
+            frappe.show_alert({ message: 'Copied to clipboard', indicator: 'green' });
+        }).catch(function() {
+            frappe.show_alert({ message: 'Copy failed — try selecting manually', indicator: 'red' });
+        });
+    });
+
+    // 2.6d: download as file
+    $downloadBtn.off('click').on('click', function() {
+        const blob = new Blob([rawText], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = $selector.val() + '_' + frappe.datetime.now_datetime().replace(/[: ]/g, '-') + '.log';
+        a.click();
+        URL.revokeObjectURL(a.href);
+    });
+
     page.on_page_hide = function() {
         stopPoll();
     };
 
-    // Also stop if the DOM element itself is removed
     $(wrapper).on('remove', function() {
         stopPoll();
     });
 
-    // Initial fetch
+    // Initial load
     fetch_logs();
+    startStream();
 };

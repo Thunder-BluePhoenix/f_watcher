@@ -31,6 +31,13 @@
     #log_status.text-danger {
         color: var(--red-500, #ef4444);
     }
+    .fw-log-action-bar {
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
 </style>
 
 <div class="fw-log-controls">
@@ -40,7 +47,7 @@
         <option value="web.error.log">web.error.log (Nginx / Gunicorn)</option>
         <option value="worker.error.log">worker.error.log (Background Jobs)</option>
         <option value="schedule.error.log">schedule.error.log (Scheduler)</option>
-        <option value="node-socketio.error.log">node-socketio.error.log (Socket & Web)</option>
+        <option value="node-socketio.error.log">node-socketio.error.log (Socket &amp; Web)</option>
     </select>
 
     <label for="log_lines">Lines:</label>
@@ -51,7 +58,13 @@
         <option value="500">500</option>
     </select>
 
-    <button class="btn btn-primary btn-sm" id="refresh_log_btn">↻ Refresh now</button>
+    <input id="log_search" class="form-control" style="width:200px;"
+           placeholder="Filter lines…" type="search">
+
+    <button class="btn btn-primary btn-sm" id="refresh_log_btn">&#8635; Refresh now</button>
+    <button class="btn btn-default btn-sm" id="log_pause_btn">&#9646;&#9646; Pause</button>
+    <button class="btn btn-default btn-sm" id="log_copy_btn">&#128203; Copy</button>
+    <button class="btn btn-default btn-sm" id="log_download_btn">&#8595; Download</button>
 
     <span id="log_status" class="text-muted" style="margin-left:4px;font-size:12px;"></span>
 </div>

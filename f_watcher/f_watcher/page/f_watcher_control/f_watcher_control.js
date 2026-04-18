@@ -270,12 +270,16 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
   }
 
   // Layout containers
-  const $toast = $(`<div class="upeo-toast"></div>`).appendTo($body);
-  const $health = $(`<div></div>`).appendTo($body);
-  const $row = $(`<div class="row" style="margin-top:12px;"></div>`).appendTo($body);
-  const $left = $(`<div class="col-md-8"></div>`).appendTo($row);
-  const $right = $(`<div class="col-md-4"></div>`).appendTo($row);
-  const $audit = $(`<div style="margin-top:12px;"></div>`).appendTo($body);
+  const $toast         = $(`<div class="upeo-toast"></div>`).appendTo($body);
+  const $health        = $(`<div></div>`).appendTo($body);
+  const $healthMap     = $(`<div style="margin-top:12px;"></div>`).appendTo($body);
+  const $charts        = $(`<div style="margin-top:12px;"></div>`).appendTo($body);
+  const $row           = $(`<div class="row" style="margin-top:12px;"></div>`).appendTo($body);
+  const $left          = $(`<div class="col-md-8"></div>`).appendTo($row);
+  const $right         = $(`<div class="col-md-4"></div>`).appendTo($row);
+  const $alertRulesPanel = $(`<div style="margin-top:12px;"></div>`).appendTo($body);
+  const $queuesPanel   = $(`<div style="margin-top:12px;"></div>`).appendTo($body);
+  const $audit         = $(`<div style="margin-top:12px;"></div>`).appendTo($body);
 
   // One premium tooltip element reused for all tips
   let $tip = $("#upeo-tooltip");
@@ -652,6 +656,9 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
     const big = data.big_tables || [];
 
     const h = healthLevel(sys);
+    const score = healthScore(sys, queues);
+    const scoreDot = score == null ? "yellow" : score >= 80 ? "green" : score >= 60 ? "yellow" : "red";
+    const scoreLabel = score == null ? "–" : score;
     const qSummary = queues.slice(0, 3).map(q => `${q.queue_name}: ${q.job_count} waiting`).join(" · ") || "No queue data yet";
 
     // Premium tooltip payloads (readable + actionable)
@@ -740,10 +747,16 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
 
         <div class="upeo-header">
           <div>
-            <div class="upeo-pill">
-              <span class="upeo-dot ${h.level}"></span>
-              <span>${h.title}</span>
-              <span class="upeo-badge">${h.level.toUpperCase()}</span>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <div class="upeo-pill">
+                <span class="upeo-dot ${h.level}"></span>
+                <span>${h.title}</span>
+                <span class="upeo-badge">${h.level.toUpperCase()}</span>
+              </div>
+              <div class="upeo-pill" title="System health score (0–100)">
+                <span class="upeo-dot ${scoreDot}"></span>
+                <span>Health Score: <b>${scoreLabel}</b>/100</span>
+              </div>
             </div>
             <div class="upeo-subtle" style="margin-top:8px;">${h.msg}</div>
             <div class="upeo-subtle" style="margin-top:6px;">Background tasks: ${frappe.utils.escape_html(qSummary)}</div>
@@ -953,6 +966,277 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
   }
 
   // -----------------------------
+  // 2.7c: Health score (0-100)
+  // -----------------------------
+  function healthScore(sys, queues) {
+    if (!sys) return null;
+    let score = 100;
+    if (sys.cpu_percent > 90)       score -= 30;
+    else if (sys.cpu_percent > 70)  score -= 15;
+    if (sys.ram_percent > 90)       score -= 25;
+    else if (sys.ram_percent > 75)  score -= 10;
+    if (sys.disk_percent > 90)      score -= 20;
+    else if (sys.disk_percent > 80) score -= 10;
+    const totalFailed = (queues || []).reduce((s, q) => s + (q.failed_count || 0), 0);
+    if (totalFailed > 10)      score -= 15;
+    else if (totalFailed > 0)  score -= 5;
+    return Math.max(0, score);
+  }
+
+  // 2.2: render dependency health map
+  function renderHealthMap(data) {
+    const nodes = [
+      { key: "mysql",       label: "MySQL" },
+      { key: "redis_cache", label: "Redis Cache" },
+      { key: "redis_queue", label: "Redis Queue" },
+      { key: "scheduler",   label: "Scheduler" },
+      { key: "workers",     label: "Workers" },
+    ];
+    const pills = nodes.map(n => {
+      const info = data[n.key] || {};
+      const dot  = info.status === "ok" ? "green" : info.status === "warn" ? "yellow" : "red";
+      const extra = n.key === "workers" && info.count != null ? ` (${info.count})` : "";
+      const detail = info.detail ? ` · ${frappe.utils.escape_html(info.detail)}` : "";
+      return `<span class="upeo-pill"><span class="upeo-dot ${dot}"></span>${n.label}${extra}${detail}</span>`;
+    }).join(" ");
+
+    $healthMap.html(`
+      <div class="upeo-glass upeo-card-pad upeo-fade-in upeo-section">
+        <div class="upeo-accent health"></div>
+        <div class="upeo-header" style="margin-bottom:8px;">
+          <div class="upeo-title">Dependency Health</div>
+          <div class="upeo-subtle">Auto-refreshes every 30s</div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">${pills}</div>
+      </div>
+    `);
+  }
+
+  // 2.1: render time-series charts
+  let currentHours = 6;
+  function renderCharts(data) {
+    if (!data || !data.system || !data.system.length) {
+      $charts.html(`
+        <div class="upeo-glass upeo-card-pad upeo-fade-in upeo-section">
+          <div class="upeo-accent tables"></div>
+          <div class="upeo-title">Metric History</div>
+          <div class="upeo-subtle" style="margin-top:8px;">No historical data yet — metrics are collected every minute.</div>
+        </div>
+      `);
+      return;
+    }
+
+    const rangeHtml = [1, 6, 24, 168].map(h => {
+      const label = h === 168 ? '7d' : h === 24 ? '24h' : h === 6 ? '6h' : '1h';
+      const active = h === currentHours ? 'btn-primary' : 'btn-default';
+      return `<button class="btn btn-sm upeo-btn ${active}" data-hours="${h}">${label}</button>`;
+    }).join('');
+
+    $charts.html(`
+      <div class="upeo-glass upeo-card-pad upeo-fade-in upeo-section">
+        <div class="upeo-accent tables"></div>
+        <div class="upeo-header">
+          <div class="upeo-title">Metric History</div>
+          <div style="display:flex;gap:6px;" id="upeo-range-btns">${rangeHtml}</div>
+        </div>
+        <div id="upeo-cpu-chart" style="margin-top:8px;"></div>
+        <div id="upeo-db-chart" style="margin-top:8px;"></div>
+      </div>
+    `);
+
+    const labels = data.system.map(r => r.bucket ? r.bucket.slice(11, 16) : '');
+
+    if (typeof frappe.Chart !== 'undefined') {
+      new frappe.Chart("#upeo-cpu-chart", {
+        type: "line",
+        data: {
+          labels,
+          datasets: [
+            { name: "CPU %",  values: data.system.map(r => parseFloat(r.cpu  || 0).toFixed(1)) },
+            { name: "RAM %",  values: data.system.map(r => parseFloat(r.ram  || 0).toFixed(1)) },
+            { name: "Disk %", values: data.system.map(r => parseFloat(r.disk || 0).toFixed(1)) },
+          ],
+        },
+        colors: ["#5e64ff", "#f59e0b", "#ef4444"],
+        lineOptions: { regionFill: 1, hideDots: labels.length > 60 },
+        axisOptions: { xIsSeries: true },
+        height: 200,
+        title: "CPU / RAM / Disk %",
+      });
+    }
+
+    if (data.db_size && data.db_size.length && typeof frappe.Chart !== 'undefined') {
+      const dbLabels = data.db_size.map(r => r.bucket ? r.bucket.slice(11, 16) : '');
+      new frappe.Chart("#upeo-db-chart", {
+        type: "line",
+        data: {
+          labels: dbLabels,
+          datasets: [
+            { name: "DB Size (MB)", values: data.db_size.map(r => parseFloat(r.total_mb || 0).toFixed(0)) },
+          ],
+        },
+        colors: ["#10b981"],
+        lineOptions: { regionFill: 1, hideDots: dbLabels.length > 60 },
+        axisOptions: { xIsSeries: true },
+        height: 160,
+        title: "Database Size trend (MB)",
+      });
+    }
+
+    // Bind range selector buttons
+    $charts.find("#upeo-range-btns").find("[data-hours]").off("click").on("click", function() {
+      currentHours = parseInt($(this).data("hours"));
+      fetchHistory();
+    });
+  }
+
+  // 2.7a: collector health panel (rendered inside $right)
+  function renderCollectorStatus(rows) {
+    if (!rows || !rows.length) return;
+    const dots = rows.map(r => {
+      const dot = r.status === "ok" ? "green" : r.status === "never" ? "red" : "yellow";
+      const age = r.minutes_ago != null ? `${r.minutes_ago}m ago` : "never";
+      return `<div style="display:flex;align-items:center;gap:6px;margin:4px 0;">
+        <span class="upeo-dot ${dot}"></span>
+        <span style="font-size:12px;">${frappe.utils.escape_html(r.label)}</span>
+        <span class="upeo-subtle" style="font-size:11px;">${age}</span>
+      </div>`;
+    }).join('');
+
+    // Append to $right (below operator actions)
+    const $existing = $right.find('#upeo-collector-panel');
+    const html = `
+      <div id="upeo-collector-panel" class="upeo-glass upeo-card-pad upeo-fade-in upeo-section" style="margin-top:12px;">
+        <div class="upeo-accent health"></div>
+        <div class="upeo-title">Collector Status</div>
+        <div style="margin-top:8px;">${dots}</div>
+      </div>
+    `;
+    if ($existing.length) {
+      $existing.replaceWith(html);
+    } else {
+      $right.append(html);
+    }
+  }
+
+  // 2.7b: active alert rules panel
+  function renderAlertRules() {
+    frappe.call({
+      method: "frappe.client.get_list",
+      args: {
+        doctype: "F Watcher Alert Rule",
+        filters: { is_active: 1 },
+        fields: ["name", "rule_name", "metric_type", "property_name", "condition", "threshold_value", "last_triggered"],
+        limit: 20,
+      },
+      callback(r) {
+        const rules = r.message || [];
+        if (!rules.length) {
+          $alertRulesPanel.html('');
+          return;
+        }
+        const rows = rules.map(rule => {
+          const last = rule.last_triggered ? prettyTime(rule.last_triggered) : '<span class="upeo-subtle">Never</span>';
+          return `<tr>
+            <td><b>${frappe.utils.escape_html(rule.rule_name)}</b></td>
+            <td>${frappe.utils.escape_html(rule.metric_type)}</td>
+            <td>${frappe.utils.escape_html(rule.property_name || '-')}</td>
+            <td>${frappe.utils.escape_html(rule.condition)} ${rule.threshold_value}</td>
+            <td>${last}</td>
+          </tr>`;
+        }).join('');
+
+        $alertRulesPanel.html(`
+          <div class="upeo-glass upeo-card-pad upeo-fade-in upeo-section">
+            <div class="upeo-accent audit"></div>
+            <div class="upeo-header">
+              <div class="upeo-title">Active Alert Rules</div>
+              <div class="upeo-badge">${rules.length} active</div>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-bordered upeo-table">
+                <thead><tr>
+                  <th>Rule</th><th>Metric</th><th>Property</th><th>Threshold</th><th>Last Triggered</th>
+                </tr></thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>
+          </div>
+        `);
+      }
+    });
+  }
+
+  // 2.7d: queue panel with retry buttons
+  function renderQueuesPanel(queues) {
+    if (!queues || !queues.length) {
+      $queuesPanel.html('');
+      return;
+    }
+
+    // Group by queue_name, take most recent row per queue
+    const byQueue = {};
+    queues.forEach(q => {
+      if (!byQueue[q.queue_name] || q.timestamp > byQueue[q.queue_name].timestamp) {
+        byQueue[q.queue_name] = q;
+      }
+    });
+
+    const cards = Object.values(byQueue).map(q => {
+      const failedDot = q.failed_count > 0 ? "red" : "green";
+      return `
+        <div class="col-sm-4" style="margin-bottom:12px;">
+          <div class="upeo-glass upeo-card-pad upeo-section" style="border-radius:14px;">
+            <div style="font-weight:850;">${frappe.utils.escape_html(q.queue_name)}</div>
+            <div class="upeo-subtle" style="margin-top:4px;">Waiting: <b>${q.job_count || 0}</b></div>
+            <div class="upeo-subtle">Workers: <b>${q.active_workers || 0}</b></div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:6px;">
+              <span class="upeo-dot ${failedDot}"></span>
+              <span class="upeo-subtle">Failed: <b>${q.failed_count || 0}</b></span>
+            </div>
+            ${q.failed_count > 0 ? `
+              <button class="btn btn-warning btn-sm upeo-btn upeo-retry-btn"
+                      data-queue="${frappe.utils.escape_html(q.queue_name)}"
+                      style="margin-top:8px;width:100%;">
+                Retry failed jobs
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    $queuesPanel.html(`
+      <div class="upeo-glass upeo-card-pad upeo-fade-in upeo-section">
+        <div class="upeo-accent actions"></div>
+        <div class="upeo-title" style="margin-bottom:12px;">Queue Status</div>
+        <div class="row">${cards}</div>
+      </div>
+    `);
+
+    $queuesPanel.find(".upeo-retry-btn").off("click").on("click", function() {
+      const qName = $(this).data("queue");
+      const $btn = $(this);
+      frappe.confirm(`Requeue all failed jobs in "${qName}"?`, () => {
+        $btn.prop("disabled", true).text("Requeueing…");
+        frappe.call({
+          method: "f_watcher.actions.queue.retry_failed_jobs",
+          args: { queue_name: qName },
+          callback(r) {
+            showToast("ok", r.message?.message || "Jobs requeued.");
+            $btn.prop("disabled", false).text("Retry failed jobs");
+            refresh(true);
+          },
+          error() {
+            showToast("error", "Requeue failed. Check permissions.");
+            $btn.prop("disabled", false).text("Retry failed jobs");
+          },
+        });
+      });
+    });
+  }
+
+  // -----------------------------
   // Action bindings
   // -----------------------------
   // -----------------------------
@@ -1065,6 +1349,29 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
   // Auto-refresh
   // -----------------------------
   let f_watcherTimer = null;
+  let healthMapTimer = null;
+
+  function fetchHealthMap() {
+    frappe.call({
+      method: "f_watcher.api.health.check",
+      callback(r) { renderHealthMap(r.message || {}); },
+    });
+  }
+
+  function fetchHistory() {
+    frappe.call({
+      method: "f_watcher.dashboards.metrics.history",
+      args: { hours: currentHours },
+      callback(r) { renderCharts(r.message || {}); },
+    });
+  }
+
+  function fetchCollectorStatus() {
+    frappe.call({
+      method: "f_watcher.dashboards.metrics.collector_status",
+      callback(r) { renderCollectorStatus(r.message || []); },
+    });
+  }
 
   function refresh(silent = false) {
     if (!silent) renderLoading();
@@ -1072,12 +1379,16 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
     frappe.call({
       method: "f_watcher.dashboards.metrics.latest",
       callback(r) {
-        render(r.message || {});
+        const data = r.message || {};
+        render(data);
+        renderQueuesPanel(data.queues || []);
         frappe.call({
           method: "f_watcher.dashboards.metrics.audit",
           args: { limit: 15 },
           callback(a) { renderAudit(a.message || []); }
         });
+        renderAlertRules();
+        fetchCollectorStatus();
       },
       error() {
         showToast("error", "Failed to load metrics. Check server logs.");
@@ -1088,10 +1399,19 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
   function startAutoRefresh() {
     if (f_watcherTimer) clearInterval(f_watcherTimer);
     f_watcherTimer = setInterval(() => refresh(true), 15000);
+
+    // Health map refreshes every 30s
+    if (healthMapTimer) clearInterval(healthMapTimer);
+    fetchHealthMap();
+    healthMapTimer = setInterval(fetchHealthMap, 30000);
+
+    // Charts load once on start
+    fetchHistory();
   }
 
   $(wrapper).on("remove", () => {
     if (f_watcherTimer) clearInterval(f_watcherTimer);
+    if (healthMapTimer) clearInterval(healthMapTimer);
     hideTip();
   });
 

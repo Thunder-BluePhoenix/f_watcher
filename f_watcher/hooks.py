@@ -110,7 +110,7 @@ add_to_apps_screen = [
 # ------------------
 # See frappe.core.notifications.get_notification_config
 
-# notification_config = "f_watcher.notifications.get_notification_config"
+notification_config = "f_watcher.notifications.get_notification_config"
 
 # Permissions
 # -----------
@@ -173,6 +173,9 @@ scheduler_events = {
         ],
         "0 2 * * *": [
             "f_watcher.collectors.retention.purge",
+        ],
+        "0 8 * * *": [
+            "f_watcher.collectors.digest.send_daily_digest",
         ],
     }
 }

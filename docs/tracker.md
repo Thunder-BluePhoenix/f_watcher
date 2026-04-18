@@ -92,26 +92,26 @@
 
 | Task | Status |
 |------|--------|
-| `history()` endpoint — time-bucketed metrics | [ ] |
-| Time-range selector in Control Center (1h/6h/24h/7d) | [ ] |
-| CPU/RAM/Disk line chart (Frappe Charts, area fill) | [ ] |
-| Queue depth chart per queue | [ ] |
-| DB size trend chart | [ ] |
-| `api/health.py` — MySQL, Redis, Scheduler, Workers status | [ ] |
-| Dependency health map row in Control Center header | [ ] |
-| `notification_config` hook + `notifications.py` for navbar badge | [ ] |
-| `api/log_stream.py` — WebSocket log tailing | [ ] |
-| Replace Log Viewer polling with `frappe.realtime` listener | [ ] |
-| `collectors/digest.py` — daily email digest | [ ] |
-| Register digest at 08:00 daily in `hooks.py` | [ ] |
-| 2.6a — Log Viewer search/filter bar | [ ] |
-| 2.6b — Log Viewer line color coding by severity | [ ] |
-| 2.6c — Log Viewer pause/resume button | [ ] |
-| 2.6d — Log Viewer copy + download buttons | [ ] |
-| 2.7a — Collector health panel (last-run status per collector) | [ ] |
-| 2.7b — Active alert rules panel with live values | [ ] |
-| 2.7c — System health score (0–100) badge in header | [ ] |
-| 2.7d — Retry failed jobs button per queue in UI | [ ] |
+| `history()` endpoint — time-bucketed metrics | [x] |
+| Time-range selector in Control Center (1h/6h/24h/7d) | [x] |
+| CPU/RAM/Disk line chart (Frappe Charts, area fill) | [x] |
+| Queue depth chart per queue | [x] |
+| DB size trend chart | [x] |
+| `api/health.py` — MySQL, Redis, Scheduler, Workers status | [x] |
+| Dependency health map row in Control Center header | [x] |
+| `notification_config` hook + `notifications.py` for navbar badge | [x] |
+| `api/log_stream.py` — WebSocket log tailing | [x] |
+| Replace Log Viewer polling with `frappe.realtime` listener | [x] |
+| `collectors/digest.py` — daily email digest | [x] |
+| Register digest at 08:00 daily in `hooks.py` | [x] |
+| 2.6a — Log Viewer search/filter bar | [x] |
+| 2.6b — Log Viewer line color coding by severity | [x] |
+| 2.6c — Log Viewer pause/resume button | [x] |
+| 2.6d — Log Viewer copy + download buttons | [x] |
+| 2.7a — Collector health panel (last-run status per collector) | [x] |
+| 2.7b — Active alert rules panel with live values | [x] |
+| 2.7c — System health score (0–100) badge in header | [x] |
+| 2.7d — Retry failed jobs button per queue in UI | [x] |
 
 ---
 
@@ -225,13 +225,13 @@
 | Phase | Description | Tasks | Done | Left |
 |-------|-------------|-------|------|------|
 | Phase 1 | Stability & Correctness | 34 | 34 | 0 |
-| Phase 2 | Visibility & Usability | 20 | 0 | 20 |
+| Phase 2 | Visibility & Usability | 20 | 20 | 0 |
 | Phase 3 | Intelligence & Advanced Monitoring | 17 | 0 | 17 |
 | Phase 4 | Operational Control & Automation | 12 | 0 | 12 |
 | Phase 5 | Reporting & Analytics | 11 | 0 | 11 |
 | Phase 6 | Security & Compliance | 9 | 0 | 9 |
 | Phase 7 | Developer Tools & Framework Health | 11 | 0 | 11 |
-| **Total** | | **114** | **34** | **80** |
+| **Total** | | **114** | **54** | **60** |
 
 ---
 
@@ -258,3 +258,4 @@
 | 2026-04-13 | BUG-15: Fixed backups.py — healthy backup state now recorded as App Metric |
 | 2026-04-13 | BUG-16: Fixed security.py — sessions metric only inserted when count > 0 |
 | 2026-04-18 | Phase 1 complete: roles/permissions, retention collector, full test suite |
+| 2026-04-18 | Phase 2 complete: charts, health map, alert badge, log streaming, digest, queue panel |
