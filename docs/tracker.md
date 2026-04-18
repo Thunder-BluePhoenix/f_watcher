@@ -48,41 +48,41 @@
 
 | # | Task | File |
 |---|------|------|
-| BUG-07 | [ ] `frappe.make_post_request` doesn't exist — webhooks never fire | `collectors/alerting.py` |
-| BUG-08 | [ ] "System Notification" alert channel not implemented | `collectors/alerting.py` |
-| BUG-09 | [ ] Missing `frappe.db.commit()` in alerting engine | `collectors/alerting.py` |
-| BUG-10 | [ ] `get_latest_metric` missing Backup/Security/Redis types | `collectors/alerting.py` |
-| BUG-11 | [ ] `check_node_memory()` writes partial rows to System Metric | `collectors/infrastructure.py` |
-| BUG-12 | [ ] `datetime.utcnow()` deprecated in Python 3.12+ | `collectors/infrastructure.py` |
-| BUG-13 | [ ] Missing `frappe.db.commit()` after slow query loop | `collectors/database.py` |
-| BUG-14 | [ ] `frappe.db.commit()` called inside loop | `collectors/apm.py` |
-| BUG-15 | [ ] Healthy backup state never recorded | `collectors/backups.py` |
-| BUG-16 | [ ] Sessions metric inserted even at 0 active sessions | `collectors/security.py` |
+| BUG-07 | [x] `frappe.make_post_request` doesn't exist — webhooks never fire | `collectors/alerting.py` |
+| BUG-08 | [x] "System Notification" alert channel not implemented | `collectors/alerting.py` |
+| BUG-09 | [x] Missing `frappe.db.commit()` in alerting engine | `collectors/alerting.py` |
+| BUG-10 | [x] `get_latest_metric` missing Backup/Security/Redis types | `collectors/alerting.py` |
+| BUG-11 | [x] `check_node_memory()` writes partial rows to System Metric | `collectors/infrastructure.py` |
+| BUG-12 | [x] `datetime.utcnow()` deprecated in Python 3.12+ | `collectors/infrastructure.py` |
+| BUG-13 | [x] Missing `frappe.db.commit()` after slow query loop | `collectors/database.py` |
+| BUG-14 | [x] `frappe.db.commit()` called inside loop | `collectors/apm.py` |
+| BUG-15 | [x] Healthy backup state never recorded | `collectors/backups.py` |
+| BUG-16 | [x] Sessions metric inserted even at 0 active sessions | `collectors/security.py` |
 
 ### Role & Permissions
 
 | Task | Status |
 |------|--------|
-| Define `F Watcher Operator` role in fixtures | [ ] |
-| Define `F Watcher Viewer` role in fixtures | [ ] |
-| Add DocType permission rows for all 10 DocTypes | [ ] |
+| Define `F Watcher Operator` role in fixtures | [x] |
+| Define `F Watcher Viewer` role in fixtures | [x] |
+| Add DocType permission rows for all 10 DocTypes | [x] |
 
 ### Metric Data Retention
 
 | Task | Status |
 |------|--------|
-| Create `collectors/retention.py` | [ ] |
-| Register daily retention job in `hooks.py` (02:00) | [ ] |
+| Create `collectors/retention.py` | [x] |
+| Register daily retention job in `hooks.py` (02:00) | [x] |
 
 ### Test Suite
 
 | Task | Status |
 |------|--------|
-| Tests for `actions/cleanup.py` | [ ] |
-| Tests for `actions/control.py` | [ ] |
-| Tests for `dashboards/metrics.py` | [ ] |
-| Tests for `collectors/system.py` | [ ] |
-| Tests for `collectors/alerting.py` | [ ] |
+| Tests for `actions/cleanup.py` | [x] |
+| Tests for `actions/control.py` | [x] |
+| Tests for `dashboards/metrics.py` | [x] |
+| Tests for `collectors/system.py` | [x] |
+| Tests for `collectors/alerting.py` | [x] |
 
 ---
 
@@ -224,14 +224,14 @@
 
 | Phase | Description | Tasks | Done | Left |
 |-------|-------------|-------|------|------|
-| Phase 1 | Stability & Correctness | 34 | 19 | 15 |
+| Phase 1 | Stability & Correctness | 34 | 34 | 0 |
 | Phase 2 | Visibility & Usability | 20 | 0 | 20 |
 | Phase 3 | Intelligence & Advanced Monitoring | 17 | 0 | 17 |
 | Phase 4 | Operational Control & Automation | 12 | 0 | 12 |
 | Phase 5 | Reporting & Analytics | 11 | 0 | 11 |
 | Phase 6 | Security & Compliance | 9 | 0 | 9 |
 | Phase 7 | Developer Tools & Framework Health | 11 | 0 | 11 |
-| **Total** | | **114** | **19** | **95** |
+| **Total** | | **114** | **34** | **80** |
 
 ---
 
@@ -251,3 +251,10 @@
 | 2026-04-13 | Created phase-5.md (Reporting & Analytics) |
 | 2026-04-13 | Created phase-6.md (Security & Compliance) |
 | 2026-04-13 | Created phase-7.md (Developer Tools & Framework Health) |
+| 2026-04-13 | BUG-07 to BUG-10: Fixed 4 alerting engine bugs (webhook, system notification, commit, metric types) |
+| 2026-04-13 | BUG-11 to BUG-12: Fixed infrastructure.py (wrong DocType for Node.js memory, utcnow deprecated) |
+| 2026-04-13 | BUG-13: Fixed database.py missing commit after slow query loop |
+| 2026-04-13 | BUG-14: Fixed apm.py commit inside loop — moved to after loop |
+| 2026-04-13 | BUG-15: Fixed backups.py — healthy backup state now recorded as App Metric |
+| 2026-04-13 | BUG-16: Fixed security.py — sessions metric only inserted when count > 0 |
+| 2026-04-18 | Phase 1 complete: roles/permissions, retention collector, full test suite |

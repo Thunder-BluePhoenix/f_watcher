@@ -171,6 +171,9 @@ scheduler_events = {
             "f_watcher.collectors.database_health.collect",
             "f_watcher.collectors.infrastructure.collect",
         ],
+        "0 2 * * *": [
+            "f_watcher.collectors.retention.purge",
+        ],
     }
 }
 
@@ -259,5 +262,9 @@ scheduler_events = {
 
 fixtures = [
     "Client Script",
-    "Custom Field"
+    "Custom Field",
+    {
+        "dt": "Role",
+        "filters": [["name", "in", ["F Watcher Operator", "F Watcher Viewer"]]],
+    },
 ]

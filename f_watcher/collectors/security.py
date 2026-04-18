@@ -39,15 +39,18 @@ def track_failed_logins():
         frappe.db.commit()
 
 def track_active_sessions():
-    # Only authenticated users
-    active_sessions = frappe.db.sql("SELECT count(user) FROM tabSessions WHERE user != 'Guest'")[0][0]
-    
-    frappe.get_doc({
-        "doctype": "F Watcher App Metric",
-        "timestamp": now_datetime(),
-        "metric_type": "Active Sessions",
-        "count": active_sessions,
-        "details": "Active concurrent users"
-    }).insert(ignore_permissions=True)
-    frappe.db.commit()
+    active_sessions = frappe.db.sql(
+        "SELECT COUNT(user) FROM `tabSessions` WHERE user != 'Guest'"
+    )[0][0] or 0
+
+    # BUG-16: always inserting even at 0 created noise every 15 minutes on idle sites
+    if active_sessions > 0:
+        frappe.get_doc({
+            "doctype": "F Watcher App Metric",
+            "timestamp": now_datetime(),
+            "metric_type": "Active Sessions",
+            "count": active_sessions,
+            "details": f"{active_sessions} active authenticated user session(s)",
+        }).insert(ignore_permissions=True)
+        frappe.db.commit()
 

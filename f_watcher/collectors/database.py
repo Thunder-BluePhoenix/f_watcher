@@ -37,3 +37,5 @@ def collect(limit: int = 10):
             "avg_time_ms": int((avg_s or 0) * 1000),
             "max_time_ms": int((max_s or 0) * 1000),
         }).insert(ignore_permissions=True)
+
+    frappe.db.commit()  # BUG-13: commit once after the loop, not missing entirely

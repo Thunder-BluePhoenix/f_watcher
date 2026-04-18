@@ -31,6 +31,7 @@ def process_apm_traces():
             "timestamp": now_datetime(),
             "metric_type": "APM Trace",
             "count": q.count,
-            "details": f"Path: {path} | Max Time: {elapsed_ms}ms"
+            "details": f"Path: {path} | Max Time: {elapsed_ms}ms",
         }).insert(ignore_permissions=True)
-        frappe.db.commit()
+
+    frappe.db.commit()  # BUG-14: commit once after loop, not once per iteration

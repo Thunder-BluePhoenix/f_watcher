@@ -29,8 +29,16 @@ def collect():
     if diff_hours > 24:
         record_alert(f"Critical: The most recent backup is {diff_hours:.1f} hours old. Backup process may be failing.")
     else:
-        # It's healthy! We can maybe clear previous alerts?
-        pass
+        # BUG-15: healthy state was never recorded — dashboard had no backup history at all
+        import os as _os
+        frappe.get_doc({
+            "doctype": "F Watcher App Metric",
+            "timestamp": now_datetime(),
+            "metric_type": "APM Trace",
+            "count": 1,
+            "details": f"Backup OK — latest: {_os.path.basename(latest_file)}, {diff_hours:.1f}h old",
+        }).insert(ignore_permissions=True)
+        frappe.db.commit()
 
 def record_alert(message):
     try:
