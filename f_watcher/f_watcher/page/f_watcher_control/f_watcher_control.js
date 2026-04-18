@@ -282,6 +282,8 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
   const $queuesPanel     = $(`<div style="margin-top:12px;"></div>`).appendTo($body);
   const $audit           = $(`<div style="margin-top:12px;"></div>`).appendTo($body);
   const $errorPatterns   = $(`<div style="margin-top:12px;"></div>`).appendTo($body);
+  const $sessionsCard    = $(`<div style="margin-top:12px;"></div>`).appendTo($body);
+  const $sslCard         = $(`<div style="margin-top:12px;"></div>`).appendTo($body);
 
   // One premium tooltip element reused for all tips
   let $tip = $("#upeo-tooltip");
@@ -1521,6 +1523,126 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
     });
   }
 
+  // 6.3: Active Sessions card
+  function renderSessionsCard() {
+    frappe.call({
+      method: "f_watcher.api.sessions.list_sessions",
+      callback(r) {
+        const sessions = r.message || [];
+        if (!sessions.length) {
+          $sessionsCard.html("");
+          return;
+        }
+        const rows = sessions.map(s => `
+          <tr>
+            <td>${frappe.utils.escape_html(s.user || "-")}</td>
+            <td style="font-size:11px;">${frappe.utils.escape_html(s.ipaddress || "-")}</td>
+            <td class="upeo-subtle">${prettyTime(s.lastupdate)}</td>
+            <td style="font-size:11px;">${frappe.utils.escape_html(s.status || "-")}</td>
+            <td>
+              ${s.user !== frappe.session.user ? `
+                <button class="btn btn-danger btn-xs upeo-btn upeo-force-logout"
+                        data-sid="${frappe.utils.escape_html(s.sid)}"
+                        data-user="${frappe.utils.escape_html(s.user)}">
+                  Force logout
+                </button>
+              ` : '<span class="upeo-subtle">You</span>'}
+            </td>
+          </tr>
+        `).join("");
+
+        $sessionsCard.html(`
+          <div class="upeo-glass upeo-card-pad upeo-fade-in upeo-section">
+            <div class="upeo-accent audit"></div>
+            <div class="upeo-header">
+              <div>
+                <div class="upeo-title">Active Sessions</div>
+                <div class="upeo-subtle">Authenticated (non-Guest) sessions</div>
+              </div>
+              <div class="upeo-badge">${sessions.length} active</div>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-bordered upeo-table">
+                <thead><tr>
+                  <th>User</th><th>IP</th><th>Last active</th><th>Status</th><th></th>
+                </tr></thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>
+          </div>
+        `);
+
+        $sessionsCard.find(".upeo-force-logout").off("click").on("click", function() {
+          const $btn = $(this);
+          const sid = $btn.data("sid");
+          const user = $btn.data("user");
+          frappe.confirm(`Force logout session for "${user}"?`, () => {
+            $btn.prop("disabled", true).text("Logging out…");
+            frappe.call({
+              method: "f_watcher.api.sessions.force_logout",
+              args: { session_id: sid },
+              callback() {
+                showToast("ok", `Session for ${user} terminated.`);
+                renderSessionsCard();
+              },
+              error() { showToast("error", "Force logout failed. Check permissions."); },
+            });
+          });
+        });
+      },
+      error() { $sessionsCard.html(""); },
+    });
+  }
+
+  // 6.9: SSL expiry card
+  function renderSSLCard() {
+    frappe.call({
+      method: "frappe.client.get_list",
+      args: {
+        doctype: "F Watcher App Metric",
+        filters: { metric_type: "SSL Certificate" },
+        fields: ["count", "details", "timestamp"],
+        order_by: "timestamp desc",
+        limit: 1,
+      },
+      callback(r) {
+        const rows = r.message || [];
+        if (!rows.length) { $sslCard.html(""); return; }
+        const latest = rows[0];
+        const days = Number(latest.count);
+        const dot  = days > 30 ? "green" : days > 14 ? "yellow" : "red";
+        const badge = days > 30 ? "OK" : days > 14 ? "EXPIRING SOON" : "CRITICAL";
+
+        $sslCard.html(`
+          <div class="upeo-glass upeo-card-pad upeo-fade-in upeo-section">
+            <div class="upeo-accent ${days > 30 ? "health" : days > 14 ? "actions" : "audit"}"></div>
+            <div class="upeo-header" style="margin-bottom:0;">
+              <div>
+                <div class="upeo-title" style="display:flex;align-items:center;gap:8px;">
+                  SSL Certificate
+                  <span class="upeo-pill" style="padding:4px 10px;">
+                    <span class="upeo-dot ${dot}"></span>
+                    <span>${badge}</span>
+                  </span>
+                </div>
+                <div class="upeo-subtle" style="margin-top:6px;">
+                  ${frappe.utils.escape_html(latest.details || "")}
+                </div>
+                <div class="upeo-subtle" style="margin-top:4px;">
+                  Checked: ${prettyTime(latest.timestamp)}
+                </div>
+              </div>
+              <div class="upeo-kpi" style="color:var(--upeo-${dot === 'red' ? 'red' : dot === 'yellow' ? 'amber' : 'green'});">
+                ${days}d
+              </div>
+            </div>
+          </div>
+        `);
+      },
+      error() { $sslCard.html(""); },
+    });
+  }
+
   // -----------------------------
   // Action bindings
   // -----------------------------
@@ -1639,6 +1761,8 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
   let healthMapTimer = null;
   let maintenanceTimer = null;
   let cacheTimer = null;
+  let sessionsTimer = null;
+  let sslTimer = null;
 
   // Phase 5: auxiliary state — one cycle behind, that's fine
   let currentDeltas   = null;
@@ -1763,6 +1887,16 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
     renderCacheCard();
     cacheTimer = setInterval(renderCacheCard, 60000);
 
+    // Sessions card — every 30s
+    if (sessionsTimer) clearInterval(sessionsTimer);
+    renderSessionsCard();
+    sessionsTimer = setInterval(renderSessionsCard, 30000);
+
+    // SSL card — every 5 minutes (changes hourly at most)
+    if (sslTimer) clearInterval(sslTimer);
+    renderSSLCard();
+    sslTimer = setInterval(renderSSLCard, 300000);
+
     // Charts load once on start
     fetchHistory();
 
@@ -1775,6 +1909,8 @@ frappe.pages["f_watcher-control"].on_page_load = function (wrapper) {
     if (healthMapTimer) clearInterval(healthMapTimer);
     if (maintenanceTimer) clearInterval(maintenanceTimer);
     if (cacheTimer) clearInterval(cacheTimer);
+    if (sessionsTimer) clearInterval(sessionsTimer);
+    if (sslTimer) clearInterval(sslTimer);
     hideTip();
   });
 

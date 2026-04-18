@@ -188,15 +188,15 @@
 
 | Task | Status |
 |------|--------|
-| IP-based brute force detection in `security.py` | [ ] |
-| Suspicious activity patterns (bulk delete, permission changes) | [ ] |
-| `api/sessions.py` — `list_sessions()` + `force_logout()` | [ ] |
-| Active Sessions card in Control Center | [ ] |
-| `collectors/api_keys.py` — stale + newly created keys | [ ] |
-| Register API key collector hourly in `hooks.py` | [ ] |
-| `permission_changes()` API + audit timeline | [ ] |
-| Always write SSL metric record (not only on alert) | [ ] |
-| SSL expiry KPI card in Control Center | [ ] |
+| IP-based brute force detection in `security.py` | [x] |
+| Suspicious activity patterns (bulk delete, permission changes) | [x] |
+| `api/sessions.py` — `list_sessions()` + `force_logout()` | [x] |
+| Active Sessions card in Control Center | [x] |
+| `collectors/api_keys.py` — stale + newly created keys | [x] |
+| Register API key collector hourly in `hooks.py` | [x] |
+| `permission_changes()` API + audit timeline | [x] |
+| Always write SSL metric record (not only on alert) | [x] |
+| SSL expiry KPI card in Control Center | [x] |
 
 ---
 
@@ -229,9 +229,9 @@
 | Phase 3 | Intelligence & Advanced Monitoring | 17 | 17 | 0 |
 | Phase 4 | Operational Control & Automation | 12 | 12 | 0 |
 | Phase 5 | Reporting & Analytics | 11 | 11 | 0 |
-| Phase 6 | Security & Compliance | 9 | 0 | 9 |
+| Phase 6 | Security & Compliance | 9 | 9 | 0 |
 | Phase 7 | Developer Tools & Framework Health | 11 | 0 | 11 |
-| **Total** | | **114** | **94** | **20** |
+| **Total** | | **114** | **103** | **11** |
 
 ---
 
@@ -263,3 +263,4 @@
 | 2026-04-18 | Phase 4 complete: maintenance windows, auto-remediation, queue inspector, cache card, custom cleanup rules |
 | 2026-04-19 | CI fix: patch is_maintenance_active + now_datetime in alerting/system tests; fix frappe.get_all mock target |
 | 2026-04-19 | Phase 5 complete: CSV export, uptime tracking, period deltas, disk forecast, error patterns, weekly report |
+| 2026-04-19 | Phase 6 complete: IP brute-force, suspicious activity, sessions API+card, API key collector, permission changes, SSL card |

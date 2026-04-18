@@ -283,6 +283,23 @@ def error_patterns(hours: int = 24, limit: int = 20):
 
 
 @frappe.whitelist()
+def permission_changes(hours: int = 24):
+    since = add_to_date(None, hours=-int(hours))
+    return frappe.db.sql("""
+        SELECT user, subject, reference_doctype, reference_name,
+               ip_address, creation
+        FROM `tabActivity Log`
+        WHERE creation >= %(since)s
+          AND reference_doctype IN (
+            'Has Role', 'User Permission', 'Role',
+            'Custom DocPerm', 'System Settings'
+          )
+        ORDER BY creation DESC
+        LIMIT 50
+    """, {"since": since}, as_dict=True)
+
+
+@frappe.whitelist()
 def disk_forecast(days: int = 7):
     since = add_to_date(None, days=-int(days))
     rows = frappe.db.sql("""

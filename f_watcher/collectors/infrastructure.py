@@ -35,7 +35,7 @@ def check_ssl():
                 frappe.get_doc({
                     "doctype": "F Watcher App Metric",
                     "timestamp": now_datetime(),
-                    "metric_type": "APM Trace",
+                    "metric_type": "SSL Certificate",
                     "count": days_left,
                     "details": f"SSL certificate for {domain} expires in {days_left} days",
                 }).insert(ignore_permissions=True)

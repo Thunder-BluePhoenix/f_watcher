@@ -172,6 +172,7 @@ scheduler_events = {
             "f_watcher.collectors.backups.collect",
             "f_watcher.collectors.database_health.collect",
             "f_watcher.collectors.infrastructure.collect",
+            "f_watcher.collectors.api_keys.collect",
         ],
         "0 2 * * *": [
             "f_watcher.collectors.retention.purge",
